@@ -26,13 +26,13 @@ type PrimaryRequest struct {
 
 type Request struct {
 	// Immutable
-	ID                int64  `json:"id"`
+	ID                int64  `json:"id" compare:"skip"`
 	ClientName        string `json:"client_name"`
 	ClientPhone       string `json:"client_phone"`
 	Address           string `json:"address"`
 	ClientDescription string `json:"client_description"`
-	PublicLink        string `json:"public_link"`
-	EmployeeID        int64  `json:"employee_id"`
+	PublicLink        string `json:"public_link" tests:"exception"`
+	EmployeeID        *int64 `json:"employee_id"`
 	CancelReason      string `json:"cancel_reason,omitempty"`
 
 	// Mutable
