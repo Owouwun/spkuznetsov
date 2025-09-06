@@ -10,7 +10,7 @@ import (
 
 // Оформить новую заявку
 // Ключи inputData: ClientName, ClientPhone, Address и, возможно, ClientDescription
-func CreateNewRequest(preq *PrimaryRequest) (*Request, error) {
+func (preq *PrimaryRequest) CreateNewRequest() (*Request, error) {
 	return nil, ErrNotImplemented
 }
 

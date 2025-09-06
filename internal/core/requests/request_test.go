@@ -18,8 +18,14 @@ const (
 )
 
 var (
-	tomorrow       = time.Now().Add(24 * time.Hour)
-	threeDaysLater = time.Now().Add(72 * time.Hour)
+	tomorrow           = time.Now().Add(24 * time.Hour)
+	threeDaysLater     = time.Now().Add(72 * time.Hour)
+	basePrimaryRequest = &PrimaryRequest{
+		ClientName:        baseClientName,
+		ClientPhone:       baseClientPhone,
+		Address:           baseAddress,
+		ClientDescription: baseClientDescription,
+	}
 )
 
 type requestOption func(*Request)
@@ -118,11 +124,118 @@ func validateRequest(t *testing.T, expected, actual *Request) {
 }
 
 func TestNewRequest(t *testing.T) {
-	t.Error(ErrNotImplemented)
+	cases := []struct {
+		name   string
+		pReq   *PrimaryRequest
+		expReq *Request
+		expErr error
+	}{
+		{
+			name: "Успешное создание новой заявки",
+			pReq: basePrimaryRequest,
+			expReq: newRequest(
+				withClientName(basePrimaryRequest.ClientName),
+				withClientPhone(basePrimaryRequest.ClientPhone),
+				withAddress(basePrimaryRequest.Address),
+				withClientDescription(basePrimaryRequest.ClientDescription),
+				withEmployee(nil),
+				withStatus(StatusNew),
+			),
+			expErr: nil,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			req, err := c.pReq.CreateNewRequest()
+			assertError(t, c.expErr, err)
+			validateRequest(t, c.expReq, req)
+		})
+	}
 }
 
 func TestPreschedule(t *testing.T) {
-	t.Error(ErrNotImplemented)
+	cases := []struct {
+		name   string
+		req    *Request
+		date   *time.Time
+		expReq *Request
+		expErr error
+	}{
+		{
+			name: "Успешная попытка назначить предварительную дату новой заявки",
+			req: newRequest(
+				withStatus(StatusNew),
+				withScheduledFor(nil),
+			),
+			date: &tomorrow,
+			expReq: newRequest(
+				withStatus(StatusPrescheduled),
+				withScheduledFor(&tomorrow),
+			),
+			expErr: nil,
+		},
+		{
+			name: "Успешная попытка переназначить предварительную дату новой заявки",
+			req: newRequest(
+				withStatus(StatusPrescheduled),
+				withScheduledFor(&tomorrow),
+			),
+			date: &threeDaysLater,
+			expReq: newRequest(
+				withStatus(StatusPrescheduled),
+				withScheduledFor(&threeDaysLater),
+			),
+			expErr: nil,
+		},
+		{
+			name: "Успешная попытка назначить предварительную дату заявки после частичных работ",
+			req: newRequest(
+				withStatus(StatusInProgress),
+				withScheduledFor(nil),
+			),
+			date: &tomorrow,
+			expReq: newRequest(
+				withStatus(StatusPrescheduled),
+				withScheduledFor(&tomorrow),
+			),
+			expErr: nil,
+		},
+		{
+			name: "Попытка назначить предварительную дату для отменённой заявки",
+			req: newRequest(
+				withStatus(StatusCanceled),
+				withScheduledFor(nil),
+			),
+			date: &tomorrow,
+			expReq: newRequest(
+				withStatus(StatusCanceled),
+				withScheduledFor(nil),
+			),
+			expErr: ErrActionNotPermittedByStatus,
+		},
+		{
+			name: "Попытка назначить предварительную дату для выполненной заявки",
+			req: newRequest(
+				withStatus(StatusDone),
+				withScheduledFor(nil),
+			),
+			date: &tomorrow,
+			expReq: newRequest(
+				withStatus(StatusDone),
+				withScheduledFor(nil),
+			),
+			expErr: ErrActionNotPermittedByStatus,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := c.req.Preschedule(c.date)
+			assertError(t, c.expErr, err)
+			validateRequest(t, c.expReq, c.req)
+		})
+	}
 }
 
 func TestAssign(t *testing.T) {
@@ -166,7 +279,7 @@ func TestAssign(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			err := c.req.Schedule(&threeDaysLater)
+			err := c.req.Assign(c.emp)
 			assertError(t, c.expErr, err)
 			validateRequest(t, c.expReq, c.req)
 		})
@@ -300,7 +413,7 @@ func TestProgress(t *testing.T) {
 			name: "Успешный прогресс заявки",
 			req: newRequest(
 				withStatus(StatusScheduled),
-				withScheduledFor(&threeDaysLater),
+				withScheduledFor(&tomorrow),
 			),
 			empDesc: baseEmployeeDescription,
 			expReq: newRequest(
