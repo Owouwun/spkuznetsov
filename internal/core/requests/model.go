@@ -35,7 +35,7 @@ type Request struct {
 	ClientDescription string         `json:"client_description"`
 	PublicLink        string         `json:"public_link"`
 	Employee          *auth.Employee `json:"employee_id"`
-	CancelReason      string         `json:"cancel_reason,omitempty"`
+	CancelReason      *string        `json:"cancel_reason,omitempty"`
 
 	// Mutable
 	Status              Status     `json:"status"`
@@ -44,13 +44,9 @@ type Request struct {
 }
 
 type RequestPatcher struct {
-	ClientName          *string    `json:"client_name,omitempty"`
-	ClientPhone         *string    `json:"client_phone,omitempty"`
-	Address             *string    `json:"address,omitempty"`
-	ClientDescription   *string    `json:"client_description,omitempty"`
-	CancelReason        *string    `json:"cancel_reason,omitempty"`
-	Status              Status     `json:"status,omitempty"`
-	EmployeeDescription *string    `json:"employee_description,omitempty"`
-	ScheduledFor        *time.Time `json:"scheduled_for,omitempty"`
-	ConfirmedSchedule   *bool      `json:"confirmed_schedule,omitempty"`
+	ClientName          *string `json:"client_name,omitempty"`
+	ClientPhone         *string `json:"client_phone,omitempty"`
+	Address             *string `json:"address,omitempty"`
+	ClientDescription   *string `json:"client_description,omitempty"`
+	EmployeeDescription *string `json:"employee_description,omitempty"`
 }

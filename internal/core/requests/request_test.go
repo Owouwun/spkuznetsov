@@ -63,7 +63,7 @@ func withEmployee(emp *auth.Employee) requestOption {
 
 func withCancelReason(cr string) requestOption {
 	return func(r *Request) {
-		r.CancelReason = cr
+		r.CancelReason = &cr
 	}
 }
 
@@ -88,16 +88,14 @@ func withScheduledFor(sf *time.Time) requestOption {
 // Create test request with default values
 func newTestRequest(opts ...requestOption) *Request {
 	req := &Request{
-		ClientName:          "Иван Иванов",
-		ClientPhone:         "+71112223344",
-		Address:             "ул. Примерная, д. 1",
-		ClientDescription:   "Обычный клиент",
-		PublicLink:          "example.com/abracadabra",
-		Employee:            &auth.Employee{Name: "Петр Петров"},
-		CancelReason:        "",
-		Status:              StatusScheduled,
-		EmployeeDescription: "Обычное описание",
-		ScheduledFor:        &threeDaysLater,
+		ClientName:        "Иван Иванов",
+		ClientPhone:       "+71112223344",
+		Address:           "ул. Примерная, д. 1",
+		ClientDescription: "Обычный клиент",
+		PublicLink:        "example.com/abracadabra",
+		Employee:          &auth.Employee{Name: "Петр Петров"},
+		Status:            StatusScheduled,
+		ScheduledFor:      &threeDaysLater,
 	}
 
 	for _, opt := range opts {
@@ -366,7 +364,7 @@ func TestSchedule(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			err := c.req.Schedule(&threeDaysLater)
+			err := c.req.Schedule(c.schedule)
 			assertError(t, c.expErr, err)
 			validateRequest(t, c.expReq, c.req)
 		})
@@ -439,6 +437,7 @@ func TestProgress(t *testing.T) {
 			expReq: newTestRequest(
 				withStatus(StatusInProgress),
 				withScheduledFor(nil),
+				withEmployeeDescription(baseEmployeeDescription),
 			),
 			expErr: nil,
 		},
@@ -616,8 +615,9 @@ func TestCancel(t *testing.T) {
 			),
 			cancelReason: filledCancelReason,
 			expReq: newTestRequest(
-				withStatus(StatusNew),
+				withStatus(StatusCanceled),
 				withCancelReason(filledCancelReason),
+				withScheduledFor(nil),
 			),
 			expErr: nil,
 		},

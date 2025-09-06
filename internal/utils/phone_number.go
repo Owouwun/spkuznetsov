@@ -1,4 +1,4 @@
-package м
+package utils
 
 import (
 	"errors"

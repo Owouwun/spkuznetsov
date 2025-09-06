@@ -1,11 +1,19 @@
 package requests
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
-	ErrPhoneDigitsCount           = errors.New("неправильное количество цифр в телефонном номере")
-	ErrPhoneWrongSymbols          = errors.New("телефонный номер содержит неподдерживаемые символы")
+	ErrEmptyField  = errors.New("поле должно быть заполнено")
+	ErrInvalidDate = errors.New("недопустимая дата")
+
 	ErrActionNotPermittedByStatus = errors.New("недопустимое действие для текущего статуса заявки")
 
 	ErrNotImplemented = errors.New("not implemented")
 )
+
+func NewErrEmptyField(field string) error {
+	return fmt.Errorf("%w: %s", ErrEmptyField, field)
+}
