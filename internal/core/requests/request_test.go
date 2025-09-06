@@ -1,10 +1,10 @@
 package requests
 
 import (
-	"fmt"
-	"reflect"
 	"testing"
 	"time"
+
+	"github.com/Owouwun/ipkuznetsov/internal/core/auth"
 )
 
 const (
@@ -18,34 +18,91 @@ const (
 )
 
 var (
+	tomorrow       = time.Now().Add(24 * time.Hour)
 	threeDaysLater = time.Now().Add(72 * time.Hour)
 )
 
-// Сравнение всех полей с особой обработкой для полей с тегом compare:"skip"
-func (got Request) validate(exp Request) error {
-	// TODO Придумать модификацию алгоритма, чтобы он сам выбирал с чем сравнивать поля с compare:"skip"
-	if got.ID == 0 {
-		return fmt.Errorf("ID was not defined")
+type requestOption func(*Request)
+
+func withClientName(cn string) requestOption {
+	return func(r *Request) {
+		r.ClientName = cn
 	}
-	if got.PublicLink == "" {
-		return fmt.Errorf("Public link was not defined")
+}
+
+func withClientPhone(cp string) requestOption {
+	return func(r *Request) {
+		r.ClientPhone = cp
 	}
-	if got.EmployeeID != nil {
-		return fmt.Errorf("Employee ID must be nil")
+}
+
+func withAddress(a string) requestOption {
+	return func(r *Request) {
+		r.Address = a
+	}
+}
+
+func withClientDescription(cd string) requestOption {
+	return func(r *Request) {
+		r.ClientDescription = cd
+	}
+}
+
+func withPublicLink(pl string) requestOption {
+	return func(r *Request) {
+		r.PublicLink = pl
+	}
+}
+
+func withEmployee(emp *auth.Employee) requestOption {
+	return func(r *Request) {
+		r.Employee = emp
+	}
+}
+
+func withCancelReason(cr string) requestOption {
+	return func(r *Request) {
+		r.CancelReason = cr
+	}
+}
+
+func withStatus(s Status) requestOption {
+	return func(r *Request) {
+		r.Status = s
+	}
+}
+
+func withEmployeeDescription(ed string) requestOption {
+	return func(r *Request) {
+		r.EmployeeDescription = ed
+	}
+}
+
+func withScheduledFor(sf *time.Time) requestOption {
+	return func(r *Request) {
+		r.ScheduledFor = sf
+	}
+}
+
+func newRequest(opts ...requestOption) *Request {
+	threeDaysLater := time.Now().Add(72 * time.Hour)
+	req := &Request{
+		ClientName:          "Иван Иванов",
+		ClientPhone:         "+71112223344",
+		Address:             "ул. Примерная, д. 1",
+		ClientDescription:   "Обычный клиент",
+		PublicLink:          "example.com/abracadabra",
+		Employee:            &auth.Employee{Name: "Петр Петров"},
+		CancelReason:        "",
+		Status:              StatusScheduled,
+		EmployeeDescription: "Обычное описание",
+		ScheduledFor:        &threeDaysLater,
 	}
 
-	rv := reflect.ValueOf(got)
-	for i := 0; i < rv.NumField(); i++ {
-		if rv.Type().Field(i).Tag.Get("compare") == "skip" {
-			continue
-		}
-		g, e := rv.Field(i), reflect.ValueOf(exp).Field(i)
-		if !reflect.DeepEqual(g.Interface(), e.Interface()) {
-			return fmt.Errorf("%s: expected %v, got %v",
-				rv.Type().Field(i).Name, e.Interface(), g.Interface())
-		}
+	for _, opt := range opts {
+		opt(req)
 	}
-	return nil
+	return req
 }
 
 func assertError(t *testing.T, expected, actual error) {
@@ -55,8 +112,8 @@ func assertError(t *testing.T, expected, actual error) {
 }
 
 func validateRequest(t *testing.T, expected, actual *Request) {
-	if err := actual.validate(*expected); err != nil {
-		t.Error(err)
+	if actual != expected {
+		t.Errorf("Actual and expected requests don't match")
 	}
 }
 
@@ -69,15 +126,166 @@ func TestPreschedule(t *testing.T) {
 }
 
 func TestAssign(t *testing.T) {
-	t.Error(ErrNotImplemented)
+	employee := &auth.Employee{
+		Name: "Николай Николаев",
+	}
+	cases := []struct {
+		name   string
+		req    *Request
+		emp    *auth.Employee
+		expReq *Request
+		expErr error
+	}{
+		{
+			name: "Успешная попытка назначить сотрудника на новую заявку",
+			req: newRequest(
+				withEmployee(nil),
+				withStatus(StatusPrescheduled),
+			),
+			emp: employee,
+			expReq: newRequest(
+				withEmployee(employee),
+				withStatus(StatusAssigned),
+			),
+			expErr: nil,
+		},
+		{
+			name: "Попытка назначить сотрудника на отменённую заявку",
+			req: newRequest(
+				withEmployee(nil),
+				withStatus(StatusCanceled),
+			),
+			emp: employee,
+			expReq: newRequest(
+				withEmployee(nil),
+				withStatus(StatusCanceled),
+			),
+			expErr: ErrActionNotPermittedByStatus,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := c.req.Schedule(&threeDaysLater)
+			assertError(t, c.expErr, err)
+			validateRequest(t, c.expReq, c.req)
+		})
+	}
 }
 
 func TestSchedule(t *testing.T) {
-	t.Error(ErrNotImplemented)
+	cases := []struct {
+		name     string
+		req      *Request
+		schedule *time.Time
+		expReq   *Request
+		expErr   error
+	}{
+		{
+			name: "Успешное планирование даты работ",
+			req: newRequest(
+				withStatus(StatusAssigned),
+				withScheduledFor(&threeDaysLater),
+			),
+			schedule: &tomorrow,
+			expReq: newRequest(
+				withStatus(StatusScheduled),
+				withScheduledFor(&tomorrow),
+			),
+			expErr: nil,
+		},
+		{
+			name: "Успешное планирование даты новых работ",
+			req: newRequest(
+				withStatus(StatusInProgress),
+				withScheduledFor(nil),
+			),
+			schedule: &tomorrow,
+			expReq: newRequest(
+				withStatus(StatusScheduled),
+				withScheduledFor(&tomorrow),
+			),
+			expErr: nil,
+		},
+		{
+			name: "Попытка запланировать выполненные даты работы",
+			req: newRequest(
+				withStatus(StatusDone),
+			),
+			schedule: &tomorrow,
+			expReq: newRequest(
+				withStatus(StatusDone),
+			),
+			expErr: ErrActionNotPermittedByStatus,
+		},
+		{
+			name: "Попытка запланировать отменённые работы",
+			req: newRequest(
+				withStatus(StatusCanceled),
+			),
+			schedule: &threeDaysLater,
+			expReq: newRequest(
+				withStatus(StatusCanceled),
+			),
+			expErr: ErrActionNotPermittedByStatus,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := c.req.Schedule(&threeDaysLater)
+			assertError(t, c.expErr, err)
+			validateRequest(t, c.expReq, c.req)
+		})
+	}
 }
 
 func TestConfirmSchedule(t *testing.T) {
-	t.Error(ErrNotImplemented)
+	cases := []struct {
+		name   string
+		req    *Request
+		expReq *Request
+		expErr error
+	}{
+		{
+			name: "Успешное подтверждение даты работ",
+			req: newRequest(
+				withStatus(StatusAssigned),
+			),
+			expReq: newRequest(
+				withStatus(StatusScheduled),
+			),
+			expErr: nil,
+		},
+		{
+			name: "Попытка подтвердить работы без предварительной даты",
+			req: newRequest(
+				withScheduledFor(nil),
+			),
+			expReq: newRequest(
+				withScheduledFor(nil),
+			),
+			expErr: ErrActionNotPermittedByStatus,
+		},
+		{
+			name: "Попытка подтвердить отменённые работы",
+			req: newRequest(
+				withStatus(StatusCanceled),
+			),
+			expReq: newRequest(
+				withStatus(StatusCanceled),
+			),
+			expErr: ErrActionNotPermittedByStatus,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := c.req.ConfirmSchedule()
+			assertError(t, c.expErr, err)
+			validateRequest(t, c.expReq, c.req)
+		})
+	}
 }
 
 func TestProgress(t *testing.T) {
@@ -90,77 +298,37 @@ func TestProgress(t *testing.T) {
 	}{
 		{
 			name: "Успешный прогресс заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: "",
-				CancelReason:        emptyCancelReason,
-				Status:              StatusScheduled,
-				ScheduledFor:        &threeDaysLater,
-			},
+			req: newRequest(
+				withStatus(StatusScheduled),
+				withScheduledFor(&threeDaysLater),
+			),
 			empDesc: baseEmployeeDescription,
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusInProgress,
-				ScheduledFor:        nil,
-			},
+			expReq: newRequest(
+				withStatus(StatusInProgress),
+				withScheduledFor(nil),
+			),
 			expErr: nil,
 		},
 		{
 			name: "Попытка прогресса в выполненной заявке",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: "",
-				CancelReason:        emptyCancelReason,
-				Status:              StatusDone,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusDone),
+			),
 			empDesc: "Новое описание",
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusDone,
-				ScheduledFor:        nil,
-			},
+			expReq: newRequest(
+				withStatus(StatusDone),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка прогресса в отменённой заявке",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: "",
-				CancelReason:        filledCancelReason,
-				Status:              StatusCanceled,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusCanceled),
+			),
 			empDesc: "Новое описание",
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: "",
-				CancelReason:        filledCancelReason,
-				Status:              StatusCanceled,
-				ScheduledFor:        nil,
-			},
+			expReq: newRequest(
+				withStatus(StatusCanceled),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 	}
@@ -183,122 +351,52 @@ func TestComplete(t *testing.T) {
 	}{
 		{
 			name: "Успешное завершение заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusInProgress,
-				ScheduledFor:        nil,
-			},
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusDone,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusInProgress),
+			),
+			expReq: newRequest(
+				withStatus(StatusDone),
+			),
 			expErr: nil,
 		},
 		{
 			name: "Попытка завершения новой заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: "",
-				CancelReason:        emptyCancelReason,
-				Status:              StatusNew,
-				ScheduledFor:        nil,
-			},
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: "",
-				CancelReason:        emptyCancelReason,
-				Status:              StatusNew,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusNew),
+			),
+			expReq: newRequest(
+				withStatus(StatusNew),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка завершения отменённой заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusScheduled,
-				ScheduledFor:        &threeDaysLater,
-			},
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        filledCancelReason,
-				Status:              StatusCanceled,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusCanceled),
+			),
+			expReq: newRequest(
+				withStatus(StatusCanceled),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка завершения завершённой заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusDone,
-				ScheduledFor:        nil,
-			},
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusDone,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusDone),
+			),
+			expReq: newRequest(
+				withStatus(StatusDone),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка завершения закрытой заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusPaid,
-				ScheduledFor:        nil,
-			},
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusPaid,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusPaid),
+			),
+			expReq: newRequest(
+				withStatus(StatusPaid),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 	}
@@ -321,98 +419,42 @@ func TestClose(t *testing.T) {
 	}{
 		{
 			name: "Успешное закрытие выполненной заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusDone,
-				ScheduledFor:        nil,
-			},
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusPaid,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusDone),
+			),
+			expReq: newRequest(
+				withStatus(StatusPaid),
+			),
 			expErr: nil,
 		},
 		{
 			name: "Попытка закрытия назначенной заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusScheduled,
-				ScheduledFor:        &threeDaysLater,
-			},
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusScheduled,
-				ScheduledFor:        &threeDaysLater,
-			},
+			req: newRequest(
+				withStatus(StatusScheduled),
+			),
+			expReq: newRequest(
+				withStatus(StatusScheduled),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка закрытия отменённой заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusScheduled,
-				ScheduledFor:        &threeDaysLater,
-			},
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        filledCancelReason,
-				Status:              StatusCanceled,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusCanceled),
+			),
+			expReq: newRequest(
+				withStatus(StatusCanceled),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка закрытия закрытой заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusPaid,
-				ScheduledFor:        nil,
-			},
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusPaid,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusPaid),
+			),
+			expReq: newRequest(
+				withStatus(StatusPaid),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 	}
@@ -436,102 +478,51 @@ func TestCancel(t *testing.T) {
 	}{
 		{
 			name: "Успешная отмена новой заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: "",
-				CancelReason:        emptyCancelReason,
-				Status:              StatusNew,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusNew),
+			),
 			cancelReason: filledCancelReason,
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        filledCancelReason,
-				Status:              StatusCanceled,
-				ScheduledFor:        nil,
-			},
+			expReq: newRequest(
+				withStatus(StatusNew),
+				withCancelReason(filledCancelReason),
+			),
 			expErr: nil,
 		},
 		{
 			name: "Успешная отмена запланированной заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusScheduled,
-				ScheduledFor:        &threeDaysLater,
-			},
+			req: newRequest(
+				withStatus(StatusScheduled),
+			),
 			cancelReason: filledCancelReason,
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        filledCancelReason,
-				Status:              StatusCanceled,
-				ScheduledFor:        nil,
-			},
+			expReq: newRequest(
+				withStatus(StatusCanceled),
+				withCancelReason(filledCancelReason),
+				withScheduledFor(nil),
+			),
 			expErr: nil,
 		},
 		{
 			name: "Попытка отмены отменённой заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        filledCancelReason,
-				Status:              StatusCanceled,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusCanceled),
+				withCancelReason(filledCancelReason),
+			),
 			cancelReason: "Другая причина отмены",
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        filledCancelReason,
-				Status:              StatusCanceled,
-				ScheduledFor:        nil,
-			},
+			expReq: newRequest(
+				withStatus(StatusCanceled),
+				withCancelReason(filledCancelReason),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка отмены оплаченной заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusPaid,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusPaid),
+			),
 			cancelReason: filledCancelReason,
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusPaid,
-				ScheduledFor:        nil,
-			},
+			expReq: newRequest(
+				withStatus(StatusPaid),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 	}
@@ -561,16 +552,7 @@ func TestPatch(t *testing.T) {
 	}{
 		{
 			name: "Успешная модификация полей заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusScheduled,
-				ScheduledFor:        &threeDaysLater,
-			},
+			req:  newRequest(),
 			patchedFields: &RequestPatcher{
 				ClientName:          &patchedClientName,
 				ClientPhone:         &patchedClientPhone,
@@ -578,30 +560,20 @@ func TestPatch(t *testing.T) {
 				ClientDescription:   &patchedCliendDescription,
 				EmployeeDescription: &patchedEmployeeDescription,
 			},
-			expReq: &Request{
-				ClientName:          patchedClientName,
-				ClientPhone:         patchedClientPhone,
-				Address:             patchedAddress,
-				ClientDescription:   patchedCliendDescription,
-				EmployeeDescription: patchedEmployeeDescription,
-				CancelReason:        emptyCancelReason,
-				Status:              StatusScheduled,
-				ScheduledFor:        nil,
-			},
+			expReq: newRequest(
+				withClientName(patchedClientName),
+				withClientPhone(patchedClientPhone),
+				withAddress(patchedAddress),
+				withClientDescription(patchedCliendDescription),
+				withEmployeeDescription(patchedEmployeeDescription),
+			),
 			expErr: nil,
 		},
 		{
 			name: "Попытка модификации отменённой заявки",
-			req: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        filledCancelReason,
-				Status:              StatusCanceled,
-				ScheduledFor:        nil,
-			},
+			req: newRequest(
+				withStatus(StatusCanceled),
+			),
 			patchedFields: &RequestPatcher{
 				ClientName:          &patchedClientName,
 				ClientPhone:         &patchedClientPhone,
@@ -609,16 +581,9 @@ func TestPatch(t *testing.T) {
 				ClientDescription:   &patchedCliendDescription,
 				EmployeeDescription: &patchedEmployeeDescription,
 			},
-			expReq: &Request{
-				ClientName:          baseClientName,
-				ClientPhone:         baseClientPhone,
-				Address:             baseAddress,
-				ClientDescription:   baseClientDescription,
-				EmployeeDescription: baseEmployeeDescription,
-				CancelReason:        filledCancelReason,
-				Status:              StatusCanceled,
-				ScheduledFor:        nil,
-			},
+			expReq: newRequest(
+				withStatus(StatusCanceled),
+			),
 			expErr: ErrActionNotPermittedByStatus,
 		},
 	}
