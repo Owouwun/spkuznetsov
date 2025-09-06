@@ -49,12 +49,6 @@ func withClientDescription(cd string) requestOption {
 	}
 }
 
-func withPublicLink(pl string) requestOption {
-	return func(r *Request) {
-		r.PublicLink = pl
-	}
-}
-
 func withEmployee(emp *auth.Employee) requestOption {
 	return func(r *Request) {
 		r.Employee = emp
