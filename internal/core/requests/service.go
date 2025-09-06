@@ -10,31 +10,51 @@ import (
 
 // Оформить новую заявку
 // Ключи inputData: ClientName, ClientPhone, Address и, возможно, ClientDescription
-func CreateNewRequest(preq *PrimaryRequest) (*Request, error)
+func CreateNewRequest(preq *PrimaryRequest) (*Request, error) {
+	return nil, ErrNotImplemented
+}
 
 // Назначить предварительную дату работ
-func (req *Request) Preschedule(date *time.Time) error
+func (req *Request) Preschedule(date *time.Time) error {
+	return ErrNotImplemented
+}
 
 // Назначить ответственного сотрудника
-func (req *Request) Assign(emp *auth.Employee) error
+func (req *Request) Assign(emp *auth.Employee) error {
+	return ErrNotImplemented
+}
 
 // Назначить точную дату выполнения работ
-func (req *Request) Schedule(date *time.Time) error
+func (req *Request) Schedule(date *time.Time) error {
+	return ErrNotImplemented
+}
 
 // Определить предварительную дату выполнения работ как точную
-func (req *Request) ConfirmSchedule() error
+func (req *Request) ConfirmSchedule() error {
+	return ErrNotImplemented
+}
 
 // Описать частично проведённые работы
-func (req *Request) Progress(empDescription string) error
+func (req *Request) Progress(empDescription string) error {
+	return ErrNotImplemented
+}
 
 // Пометить заявку как выполненную
-func (req *Request) Complete() error
+func (req *Request) Complete() error {
+	return ErrNotImplemented
+}
 
 // Закрыть заявку (после получения оплаты)
-func (req *Request) Close() error
+func (req *Request) Close() error {
+	return ErrNotImplemented
+}
 
 // Отменить заявку с указанием причины
-func (req *Request) Cancel(cause string) error
+func (req *Request) Cancel(cause string) error {
+	return ErrNotImplemented
+}
 
 // Модифицировать поля заявки
-func (req *Request) Modify(inputData map[string]string) error
+func (req *Request) Patch(patchedFields *RequestPatcher) error {
+	return ErrNotImplemented
+}

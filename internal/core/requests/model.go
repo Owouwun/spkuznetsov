@@ -4,17 +4,17 @@ import (
 	"time"
 )
 
-type RequestStatus string
+type Status int8
 
 const (
-	StatusNew          RequestStatus = "Оформлена"
-	StatusPrescheduled RequestStatus = "Назначена предварительная дата работ"
-	StatusAssigned     RequestStatus = "Назначен сотрудник"
-	StatusScheduled    RequestStatus = "Назначены работы"
-	StatusInProgress   RequestStatus = "Работы частично проведены"
-	StatusDone         RequestStatus = "Выполнена"
-	StatusPaid         RequestStatus = "Оплачена"
-	StatusCanceled     RequestStatus = "Отменена"
+	StatusNew          Status = 0 // "Оформлена"
+	StatusPrescheduled Status = 1 // "Назначена предварительная дата работ"
+	StatusAssigned     Status = 2 // "Назначен сотрудник"
+	StatusScheduled    Status = 3 // "Назначены работы"
+	StatusInProgress   Status = 4 // "Работы частично проведены"
+	StatusDone         Status = 5 // "Выполнена"
+	StatusPaid         Status = 6 // "Оплачена"
+	StatusCanceled     Status = -1 // "Отменена"
 )
 
 type PrimaryRequest struct {
@@ -36,27 +36,19 @@ type Request struct {
 	CancelReason      string `json:"cancel_reason,omitempty"`
 
 	// Mutable
-	Status              RequestStatus `json:"status"`
-	EmployeeDescription string        `json:"employee_description"`
-	ScheduledFor        *time.Time    `json:"scheduled_for"`
-	ConfirmedSchedule   bool          `json:"confirmed_schedule"`
-	Done                bool          `json:"done"`
-	Paid                bool          `json:"Paid"`
+	Status              Status     `json:"status"`
+	EmployeeDescription string     `json:"employee_description"`
+	ScheduledFor        *time.Time `json:"scheduled_for"`
 }
 
-type RequestHistoryChange struct {
-	Status              *RequestStatus `json:"status,omitempty"`
-	EmployeeDescription *string        `json:"employee_description,omitempty"`
-	ScheduledFor        *time.Time     `json:"scheduled_for,omitempty"`
-	ConfirmedSchedule   *bool          `json:"confirmed_schedule,omitempty"`
-	Done                *bool          `json:"done,omitempty"`
-	Paid                *bool          `json:"paid,omitempty"`
-}
-
-type RequestHistoryEntry struct {
-	HistoryID   int64                 `json:"history_id"`
-	RequestID   int64                 `json:"request_id"`
-	Timestamp   time.Time             `json:"timestamp"`
-	ChangedByID int64                 `json:"changed_by_id"`
-	Changes     *RequestHistoryChange `json:"changes"`
+type RequestPatcher struct {
+	ClientName          *string    `json:"client_name,omitempty"`
+	ClientPhone         *string    `json:"client_phone,omitempty"`
+	Address             *string    `json:"address,omitempty"`
+	ClientDescription   *string    `json:"client_description,omitempty"`
+	CancelReason        *string    `json:"cancel_reason,omitempty"`
+	Status              Status     `json:"status,omitempty"`
+	EmployeeDescription *string    `json:"employee_description,omitempty"`
+	ScheduledFor        *time.Time `json:"scheduled_for,omitempty"`
+	ConfirmedSchedule   *bool      `json:"confirmed_schedule,omitempty"`
 }
