@@ -21,3 +21,29 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.1
+  test-requests:
+    name: test requests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      checks: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+      - name: Run tests and generate JSON report
+        run: |
+          go test -json ./internal/core/requests/... > test-results.json 2>&1 || true
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v2
+        if: always()
+        with:
+          name: Go Test Results
+          path: test-results.json
+          reporter: golang-json
+          fail-on-error: true
+          max-annotations: 10
