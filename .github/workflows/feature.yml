@@ -21,8 +21,8 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.1
-  test-requests:
-    name: test requests
+  test:
+    name: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -37,7 +37,7 @@ jobs:
           go-version: stable
       - name: Run tests and generate JSON report
         run: |
-          go test -json ./internal/core/requests/... > test-results.json 2>&1 || true
+          go test -json ./internal/core/... > test-results.json 2>&1 || true
       - name: Publish Test Report
         uses: dorny/test-reporter@v2
         if: always()
