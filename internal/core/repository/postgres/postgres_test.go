@@ -6,12 +6,14 @@ import (
 	"embed"
 	"fmt"
 	"testing"
+	"time"
 
-	"github.com/Owouwun/ipkuznetsov/internal/core/logic/requests"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/seagumineko/spkuznetsov/internal/testutils"
+	"github.com/seagumineko/spkuznetsov/pkg/logger"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -23,7 +25,7 @@ const (
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
-func RunPostgresContainer() (context.Context, testcontainers.Container, error) {
+func runPostgresContainer() (context.Context, testcontainers.Container, error) {
 	ctx := context.Background()
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:15-alpine",
@@ -34,8 +36,8 @@ func RunPostgresContainer() (context.Context, testcontainers.Container, error) {
 			"POSTGRES_PASSWORD": "password",
 		},
 		WaitingFor: wait.ForAll(
-			wait.ForLog("database system is ready to accept connections"),
-			wait.ForListeningPort(containerPort),
+			wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(30*time.Second),
+			wait.ForListeningPort(containerPort).WithStartupTimeout(30*time.Second),
 		),
 	}
 	postgresContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -74,11 +76,13 @@ func runTestMigrations(db *sql.DB) error {
 }
 
 func TestRequestRepository_CreateRequest(t *testing.T) {
-	ctx, postgresContainer, err := RunPostgresContainer()
+	ctx, postgresContainer, err := runPostgresContainer()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer postgresContainer.Terminate(ctx)
+	defer logger.LogIfErr(t, "error while terminating container: %v",
+		postgresContainer.Terminate, ctx,
+	)
 
 	host, err := postgresContainer.Host(ctx)
 	if err != nil {
@@ -94,7 +98,9 @@ func TestRequestRepository_CreateRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer logger.LogIfErr(t, "error while closing db: %v",
+		db.Close,
+	)
 
 	err = runTestMigrations(db)
 	if err != nil {
@@ -102,7 +108,7 @@ func TestRequestRepository_CreateRequest(t *testing.T) {
 	}
 
 	repo := NewRequestRepository(db)
-	newRequest := requests.NewTestRequest()
+	newRequest := testutils.NewTestRequest()
 
 	requestID, err := repo.CreateRequest(ctx, newRequest)
 	if err != nil {
@@ -114,5 +120,5 @@ func TestRequestRepository_CreateRequest(t *testing.T) {
 		t.Fatalf("Failed to get request: %v", err)
 	}
 
-	requests.ValidateRequest(t, newRequest, request)
+	testutils.ValidateRequest(t, newRequest, request)
 }

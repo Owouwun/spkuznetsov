@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/Owouwun/ipkuznetsov/internal/core/logic/requests"
+	"github.com/seagumineko/spkuznetsov/internal/core/logic/requests"
 )
 
 type RequestRepository interface {

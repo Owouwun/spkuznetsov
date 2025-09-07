@@ -35,6 +35,12 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: stable
+      - name: Synchronize dependencies
+        run: |
+          go mod tidy
+      - name: Download dependencies
+        run: |
+          go mod download
       - name: Run tests and generate JSON report
         run: |
           go test -json ./internal/core/... > test-results.json 2>&1 || true

@@ -3,9 +3,9 @@ package requests
 import (
 	"time"
 
-	"github.com/Owouwun/ipkuznetsov/internal/core"
-	"github.com/Owouwun/ipkuznetsov/internal/core/logic/auth"
-	"github.com/Owouwun/ipkuznetsov/internal/utils"
+	"github.com/seagumineko/spkuznetsov/internal/core/logic/auth"
+	core_errors "github.com/seagumineko/spkuznetsov/internal/errors"
+	"github.com/seagumineko/spkuznetsov/pkg/utils"
 )
 
 func (s *Status) isValid(validStatuses *[]Status) bool {
@@ -24,13 +24,13 @@ func (s *Status) isInvalid(invalidStatuses *[]Status) bool {
 // Ключи inputData: ClientName, ClientPhone, Address и, возможно, ClientDescription
 func (preq *PrimaryRequest) CreateNewRequest() (*Request, error) {
 	if preq.ClientName == "" {
-		return nil, core.NewErrEmptyField("ClientName")
+		return nil, core_errors.NewErrEmptyField("ClientName")
 	}
 	if preq.ClientPhone == "" {
-		return nil, core.NewErrEmptyField("ClientPhone")
+		return nil, core_errors.NewErrEmptyField("ClientPhone")
 	}
 	if preq.Address == "" {
-		return nil, core.NewErrEmptyField("Address")
+		return nil, core_errors.NewErrEmptyField("Address")
 	}
 
 	req := &Request{
@@ -55,11 +55,11 @@ func (req *Request) Preschedule(date *time.Time) error {
 	}
 
 	if !req.Status.isValid(&validStatuses) {
-		return core.ErrRequestActionNotPermittedByStatus
+		return core_errors.ErrRequestActionNotPermittedByStatus
 	}
 
 	if date != nil && date.Before(time.Now()) {
-		return core.ErrInvalidDate
+		return core_errors.ErrInvalidDate
 	}
 
 	req.Status = StatusPrescheduled
@@ -75,7 +75,7 @@ func (req *Request) Assign(emp *auth.Employee) error {
 	}
 
 	if req.Status.isInvalid(&invalidStatuses) {
-		return core.ErrRequestActionNotPermittedByStatus
+		return core_errors.ErrRequestActionNotPermittedByStatus
 	}
 
 	req.Employee = emp
@@ -91,13 +91,13 @@ func (req *Request) Schedule(date *time.Time) error {
 	}
 
 	if date == nil {
-		return core.NewErrEmptyField("date")
+		return core_errors.NewErrEmptyField("date")
 	}
 	if date.Before(time.Now()) {
-		return core.ErrInvalidDate
+		return core_errors.ErrInvalidDate
 	}
 	if !req.Status.isValid(&validStatuses) {
-		return core.ErrRequestActionNotPermittedByStatus
+		return core_errors.ErrRequestActionNotPermittedByStatus
 	}
 
 	req.Status = StatusScheduled
@@ -112,11 +112,11 @@ func (req *Request) ConfirmSchedule() error {
 	}
 
 	if !req.Status.isValid(&validStatuses) {
-		return core.ErrRequestActionNotPermittedByStatus
+		return core_errors.ErrRequestActionNotPermittedByStatus
 	}
 
 	if req.ScheduledFor == nil {
-		return core.ErrRequestActionNotPermittedByStatus
+		return core_errors.ErrInvalidDate
 	}
 
 	req.Status = StatusScheduled
@@ -130,7 +130,7 @@ func (req *Request) Progress(empDescription string) error {
 	}
 
 	if !req.Status.isValid(&validStatuses) {
-		return core.ErrRequestActionNotPermittedByStatus
+		return core_errors.ErrRequestActionNotPermittedByStatus
 	}
 
 	req.Status = StatusInProgress
@@ -146,7 +146,7 @@ func (req *Request) Complete() error {
 	}
 
 	if !req.Status.isValid(&validStatuses) {
-		return core.ErrRequestActionNotPermittedByStatus
+		return core_errors.ErrRequestActionNotPermittedByStatus
 	}
 
 	req.Status = StatusDone
@@ -160,7 +160,7 @@ func (req *Request) Close() error {
 	}
 
 	if !req.Status.isValid(&validStatuses) {
-		return core.ErrRequestActionNotPermittedByStatus
+		return core_errors.ErrRequestActionNotPermittedByStatus
 	}
 
 	req.Status = StatusPaid
@@ -175,7 +175,7 @@ func (req *Request) Cancel(cause string) error {
 	}
 
 	if req.Status.isInvalid(&invalidStatuses) {
-		return core.ErrRequestActionNotPermittedByStatus
+		return core_errors.ErrRequestActionNotPermittedByStatus
 	}
 
 	req.CancelReason = &cause
@@ -192,7 +192,7 @@ func (req *Request) Patch(patchedFields *RequestPatcher) error {
 	}
 
 	if req.Status.isInvalid(&invalidStatuses) {
-		return core.ErrRequestActionNotPermittedByStatus
+		return core_errors.ErrRequestActionNotPermittedByStatus
 	}
 
 	if patchedFields.ClientName != nil {
