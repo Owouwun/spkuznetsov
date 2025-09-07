@@ -3,7 +3,7 @@ package requests
 import (
 	"time"
 
-	"github.com/Owouwun/ipkuznetsov/internal/core/auth"
+	"github.com/Owouwun/ipkuznetsov/internal/core/logic/auth"
 )
 
 type Status int8

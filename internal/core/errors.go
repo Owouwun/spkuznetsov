@@ -1,4 +1,4 @@
-package requests
+package core
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ var (
 	ErrEmptyField  = errors.New("поле должно быть заполнено")
 	ErrInvalidDate = errors.New("недопустимая дата")
 
-	ErrActionNotPermittedByStatus = errors.New("недопустимое действие для текущего статуса заявки")
+	ErrRequestActionNotPermittedByStatus = errors.New("недопустимое действие для текущего статуса заявки")
 
 	ErrNotImplemented = errors.New("not implemented")
 )

@@ -5,7 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Owouwun/ipkuznetsov/internal/core/auth"
+	"github.com/Owouwun/ipkuznetsov/internal/core"
+	"github.com/Owouwun/ipkuznetsov/internal/core/logic/auth"
 )
 
 const (
@@ -80,7 +81,7 @@ func withScheduledFor(sf *time.Time) requestOption {
 }
 
 // Create test request with default values
-func newTestRequest(opts ...requestOption) *Request {
+func NewTestRequest(opts ...requestOption) *Request {
 	req := &Request{
 		ClientName:        "Иван Иванов",
 		ClientPhone:       "+71112223344",
@@ -104,7 +105,7 @@ func assertError(t *testing.T, expected, actual error) {
 	}
 }
 
-func validateRequest(t *testing.T, expected, actual *Request) {
+func ValidateRequest(t *testing.T, expected, actual *Request) {
 	if (expected != nil) && (actual == nil) {
 		t.Errorf("Got nil value, while expected non-nil")
 		return
@@ -144,7 +145,7 @@ func TestNewRequest(t *testing.T) {
 		{
 			name: "Успешное создание новой заявки",
 			pReq: basePrimaryRequest,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withClientName(basePrimaryRequest.ClientName),
 				withClientPhone(basePrimaryRequest.ClientPhone),
 				withAddress(basePrimaryRequest.Address),
@@ -161,7 +162,7 @@ func TestNewRequest(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			req, err := c.pReq.CreateNewRequest()
 			assertError(t, c.expErr, err)
-			validateRequest(t, c.expReq, req)
+			ValidateRequest(t, c.expReq, req)
 		})
 	}
 }
@@ -176,12 +177,12 @@ func TestPreschedule(t *testing.T) {
 	}{
 		{
 			name: "Успешная попытка назначить предварительную дату новой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusNew),
 				withScheduledFor(nil),
 			),
 			date: &tomorrow,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusPrescheduled),
 				withScheduledFor(&tomorrow),
 			),
@@ -189,12 +190,12 @@ func TestPreschedule(t *testing.T) {
 		},
 		{
 			name: "Успешная попытка переназначить предварительную дату новой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusPrescheduled),
 				withScheduledFor(&tomorrow),
 			),
 			date: &threeDaysLater,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusPrescheduled),
 				withScheduledFor(&threeDaysLater),
 			),
@@ -202,12 +203,12 @@ func TestPreschedule(t *testing.T) {
 		},
 		{
 			name: "Успешная попытка назначить предварительную дату заявки после частичных работ",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusInProgress),
 				withScheduledFor(nil),
 			),
 			date: &tomorrow,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusPrescheduled),
 				withScheduledFor(&tomorrow),
 			),
@@ -215,29 +216,29 @@ func TestPreschedule(t *testing.T) {
 		},
 		{
 			name: "Попытка назначить предварительную дату для отменённой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusCanceled),
 				withScheduledFor(nil),
 			),
 			date: &tomorrow,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusCanceled),
 				withScheduledFor(nil),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка назначить предварительную дату для выполненной заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusDone),
 				withScheduledFor(nil),
 			),
 			date: &tomorrow,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusDone),
 				withScheduledFor(nil),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 	}
 
@@ -245,7 +246,7 @@ func TestPreschedule(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			err := c.req.Preschedule(c.date)
 			assertError(t, c.expErr, err)
-			validateRequest(t, c.expReq, c.req)
+			ValidateRequest(t, c.expReq, c.req)
 		})
 	}
 }
@@ -263,12 +264,12 @@ func TestAssign(t *testing.T) {
 	}{
 		{
 			name: "Успешная попытка назначить сотрудника на новую заявку",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withEmployee(nil),
 				withStatus(StatusPrescheduled),
 			),
 			emp: employee,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withEmployee(employee),
 				withStatus(StatusAssigned),
 			),
@@ -276,16 +277,16 @@ func TestAssign(t *testing.T) {
 		},
 		{
 			name: "Попытка назначить сотрудника на отменённую заявку",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withEmployee(nil),
 				withStatus(StatusCanceled),
 			),
 			emp: employee,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withEmployee(nil),
 				withStatus(StatusCanceled),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 	}
 
@@ -293,7 +294,7 @@ func TestAssign(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			err := c.req.Assign(c.emp)
 			assertError(t, c.expErr, err)
-			validateRequest(t, c.expReq, c.req)
+			ValidateRequest(t, c.expReq, c.req)
 		})
 	}
 }
@@ -308,12 +309,12 @@ func TestSchedule(t *testing.T) {
 	}{
 		{
 			name: "Успешное планирование даты работ",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusAssigned),
 				withScheduledFor(&threeDaysLater),
 			),
 			schedule: &tomorrow,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusScheduled),
 				withScheduledFor(&tomorrow),
 			),
@@ -321,12 +322,12 @@ func TestSchedule(t *testing.T) {
 		},
 		{
 			name: "Успешное планирование даты новых работ",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusInProgress),
 				withScheduledFor(nil),
 			),
 			schedule: &tomorrow,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusScheduled),
 				withScheduledFor(&tomorrow),
 			),
@@ -334,25 +335,25 @@ func TestSchedule(t *testing.T) {
 		},
 		{
 			name: "Попытка запланировать выполненные даты работы",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusDone),
 			),
 			schedule: &tomorrow,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusDone),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка запланировать отменённые работы",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
 			schedule: &threeDaysLater,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 	}
 
@@ -360,7 +361,7 @@ func TestSchedule(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			err := c.req.Schedule(c.schedule)
 			assertError(t, c.expErr, err)
-			validateRequest(t, c.expReq, c.req)
+			ValidateRequest(t, c.expReq, c.req)
 		})
 	}
 }
@@ -374,33 +375,33 @@ func TestConfirmSchedule(t *testing.T) {
 	}{
 		{
 			name: "Успешное подтверждение даты работ",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusAssigned),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusScheduled),
 			),
 			expErr: nil,
 		},
 		{
 			name: "Попытка подтвердить работы без предварительной даты",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withScheduledFor(nil),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withScheduledFor(nil),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка подтвердить отменённые работы",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 	}
 
@@ -408,7 +409,7 @@ func TestConfirmSchedule(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			err := c.req.ConfirmSchedule()
 			assertError(t, c.expErr, err)
-			validateRequest(t, c.expReq, c.req)
+			ValidateRequest(t, c.expReq, c.req)
 		})
 	}
 }
@@ -423,12 +424,12 @@ func TestProgress(t *testing.T) {
 	}{
 		{
 			name: "Успешный прогресс заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusScheduled),
 				withScheduledFor(&tomorrow),
 			),
 			empDesc: baseEmployeeDescription,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusInProgress),
 				withScheduledFor(nil),
 				withEmployeeDescription(baseEmployeeDescription),
@@ -437,25 +438,25 @@ func TestProgress(t *testing.T) {
 		},
 		{
 			name: "Попытка прогресса в выполненной заявке",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusDone),
 			),
 			empDesc: "Новое описание",
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusDone),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка прогресса в отменённой заявке",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
 			empDesc: "Новое описание",
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 	}
 
@@ -463,7 +464,7 @@ func TestProgress(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			err := c.req.Progress(c.empDesc)
 			assertError(t, c.expErr, err)
-			validateRequest(t, c.expReq, c.req)
+			ValidateRequest(t, c.expReq, c.req)
 		})
 	}
 }
@@ -477,53 +478,53 @@ func TestComplete(t *testing.T) {
 	}{
 		{
 			name: "Успешное завершение заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusInProgress),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusDone),
 			),
 			expErr: nil,
 		},
 		{
 			name: "Попытка завершения новой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusNew),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusNew),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка завершения отменённой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка завершения завершённой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusDone),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusDone),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка завершения закрытой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusPaid),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusPaid),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 	}
 
@@ -531,7 +532,7 @@ func TestComplete(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			err := c.req.Complete()
 			assertError(t, c.expErr, err)
-			validateRequest(t, c.expReq, c.req)
+			ValidateRequest(t, c.expReq, c.req)
 		})
 	}
 }
@@ -545,43 +546,43 @@ func TestClose(t *testing.T) {
 	}{
 		{
 			name: "Успешное закрытие выполненной заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusDone),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusPaid),
 			),
 			expErr: nil,
 		},
 		{
 			name: "Попытка закрытия назначенной заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusScheduled),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusScheduled),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка закрытия отменённой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка закрытия закрытой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusPaid),
 			),
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusPaid),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 	}
 
@@ -589,7 +590,7 @@ func TestClose(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			err := c.req.Close()
 			assertError(t, c.expErr, err)
-			validateRequest(t, c.expReq, c.req)
+			ValidateRequest(t, c.expReq, c.req)
 		})
 	}
 }
@@ -604,11 +605,11 @@ func TestCancel(t *testing.T) {
 	}{
 		{
 			name: "Успешная отмена новой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusNew),
 			),
 			cancelReason: filledCancelReason,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusCanceled),
 				withCancelReason(filledCancelReason),
 				withScheduledFor(nil),
@@ -617,11 +618,11 @@ func TestCancel(t *testing.T) {
 		},
 		{
 			name: "Успешная отмена запланированной заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusScheduled),
 			),
 			cancelReason: filledCancelReason,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusCanceled),
 				withCancelReason(filledCancelReason),
 				withScheduledFor(nil),
@@ -630,27 +631,27 @@ func TestCancel(t *testing.T) {
 		},
 		{
 			name: "Попытка отмены отменённой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusCanceled),
 				withCancelReason(filledCancelReason),
 			),
 			cancelReason: "Другая причина отмены",
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusCanceled),
 				withCancelReason(filledCancelReason),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 		{
 			name: "Попытка отмены оплаченной заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusPaid),
 			),
 			cancelReason: filledCancelReason,
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusPaid),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 	}
 
@@ -658,7 +659,7 @@ func TestCancel(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			err := c.req.Cancel(c.cancelReason)
 			assertError(t, c.expErr, err)
-			validateRequest(t, c.expReq, c.req)
+			ValidateRequest(t, c.expReq, c.req)
 		})
 	}
 }
@@ -679,7 +680,7 @@ func TestPatch(t *testing.T) {
 	}{
 		{
 			name: "Успешная модификация полей заявки",
-			req:  newTestRequest(),
+			req:  NewTestRequest(),
 			patchedFields: &RequestPatcher{
 				ClientName:          &patchedClientName,
 				ClientPhone:         &patchedClientPhone,
@@ -687,7 +688,7 @@ func TestPatch(t *testing.T) {
 				ClientDescription:   &patchedCliendDescription,
 				EmployeeDescription: &patchedEmployeeDescription,
 			},
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withClientName(patchedClientName),
 				withClientPhone(patchedClientPhone),
 				withAddress(patchedAddress),
@@ -698,7 +699,7 @@ func TestPatch(t *testing.T) {
 		},
 		{
 			name: "Попытка модификации отменённой заявки",
-			req: newTestRequest(
+			req: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
 			patchedFields: &RequestPatcher{
@@ -708,10 +709,10 @@ func TestPatch(t *testing.T) {
 				ClientDescription:   &patchedCliendDescription,
 				EmployeeDescription: &patchedEmployeeDescription,
 			},
-			expReq: newTestRequest(
+			expReq: NewTestRequest(
 				withStatus(StatusCanceled),
 			),
-			expErr: ErrActionNotPermittedByStatus,
+			expErr: core.ErrRequestActionNotPermittedByStatus,
 		},
 	}
 
@@ -719,7 +720,7 @@ func TestPatch(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			err := c.req.Patch(c.patchedFields)
 			assertError(t, c.expErr, err)
-			validateRequest(t, c.expReq, c.req)
+			ValidateRequest(t, c.expReq, c.req)
 		})
 	}
 }
