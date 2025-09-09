@@ -24,18 +24,23 @@ func (s *Status) isInvalid(invalidStatuses *[]Status) bool {
 // Ключи inputData: ClientName, ClientPhone, Address и, возможно, ClientDescription
 func (preq *PrimaryRequest) CreateNewRequest() (*Request, error) {
 	if preq.ClientName == "" {
-		return nil, core_errors.NewErrEmptyField("ClientName")
+		return nil, core_errors.ErrEmptyField
 	}
 	if preq.ClientPhone == "" {
-		return nil, core_errors.NewErrEmptyField("ClientPhone")
+		return nil, core_errors.ErrEmptyField
 	}
 	if preq.Address == "" {
-		return nil, core_errors.NewErrEmptyField("Address")
+		return nil, core_errors.ErrEmptyField
+	}
+
+	stdPN, err := utils.StandartizePhoneNumber(preq.ClientPhone)
+	if err != nil {
+		return nil, core_errors.ErrInvalidPhoneNumber
 	}
 
 	req := &Request{
 		ClientName:        preq.ClientName,
-		ClientPhone:       preq.ClientPhone,
+		ClientPhone:       stdPN,
 		Address:           preq.Address,
 		ClientDescription: preq.ClientDescription,
 		PublicLink:        utils.GenerateRandomString(),

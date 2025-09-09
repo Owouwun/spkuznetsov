@@ -43,6 +43,28 @@ func TestNewRequest(t *testing.T) {
 			),
 			expErr: nil,
 		},
+		{
+			name: "Попытка создать заявку с некорректным номером телефона клиента",
+			pReq: &requests.PrimaryRequest{
+				ClientName:        testutils.ClientName,
+				ClientPhone:       "+7111222334",
+				Address:           testutils.Address,
+				ClientDescription: testutils.ClientDescription,
+			},
+			expReq: nil,
+			expErr: core_errors.ErrInvalidPhoneNumber,
+		},
+		{
+			name: "Попытка создать заявку без имени клиента",
+			pReq: &requests.PrimaryRequest{
+				ClientName:        "",
+				ClientPhone:       testutils.ClientPhone,
+				Address:           testutils.Address,
+				ClientDescription: testutils.ClientDescription,
+			},
+			expReq: nil,
+			expErr: core_errors.ErrEmptyField,
+		},
 	}
 
 	for _, c := range cases {

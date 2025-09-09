@@ -99,7 +99,14 @@ func NewTestRequest(opts ...requestOption) *requests.Request {
 }
 
 func ValidateRequest(t *testing.T, expected, actual *requests.Request) {
-	if (expected != nil) && (actual == nil) {
+	if expected == nil {
+		if actual == nil {
+			return
+		}
+		t.Errorf("Got non-nil value, while expected nil")
+		return
+	}
+	if actual == nil {
 		t.Errorf("Got nil value, while expected non-nil")
 		return
 	}
