@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/seagumineko/spkuznetsov/internal/core/logic/auth"
-	core_errors "github.com/seagumineko/spkuznetsov/internal/errors"
+	deterrs "github.com/seagumineko/spkuznetsov/internal/errors"
 	"github.com/seagumineko/spkuznetsov/pkg/utils"
 )
 
@@ -24,18 +24,31 @@ func (s *Status) isInvalid(invalidStatuses *[]Status) bool {
 // Ключи inputData: ClientName, ClientPhone, Address и, возможно, ClientDescription
 func (preq *PrimaryRequest) CreateNewRequest() (*Request, error) {
 	if preq.ClientName == "" {
-		return nil, core_errors.ErrEmptyField
+		return nil, deterrs.NewDetErr(
+			deterrs.EmptyField,
+			deterrs.WithField("client name"),
+		)
 	}
 	if preq.ClientPhone == "" {
-		return nil, core_errors.ErrEmptyField
+		return nil, deterrs.NewDetErr(
+			deterrs.EmptyField,
+			deterrs.WithField("client phone"),
+		)
 	}
 	if preq.Address == "" {
-		return nil, core_errors.ErrEmptyField
+		return nil, deterrs.NewDetErr(
+			deterrs.EmptyField,
+			deterrs.WithField("address"),
+		)
 	}
 
 	stdPN, err := utils.StandartizePhoneNumber(preq.ClientPhone)
 	if err != nil {
-		return nil, core_errors.ErrInvalidPhoneNumber
+		return nil, deterrs.NewDetErr(
+			deterrs.InvalidValue,
+			deterrs.WithField("client phone"),
+			deterrs.WithOriginalError(err),
+		)
 	}
 
 	req := &Request{
@@ -60,11 +73,19 @@ func (req *Request) Preschedule(date *time.Time) error {
 	}
 
 	if !req.Status.isValid(&validStatuses) {
-		return core_errors.ErrRequestActionNotPermittedByStatus
+		return deterrs.NewDetErr(
+			deterrs.RequestActionNotPermittedByStatus,
+		)
 	}
 
-	if date != nil && date.Before(time.Now()) {
-		return core_errors.ErrInvalidDate
+	if date != nil {
+		if err := utils.MustNotPast(date); err!=nil {
+			return deterrs.NewDetErr(
+				deterrs.InvalidValue,
+				deterrs.WithField("scheduled date"),
+				deterrs.WithOriginalError(err),
+			)
+		}
 	}
 
 	req.Status = StatusPrescheduled
@@ -80,7 +101,9 @@ func (req *Request) Assign(emp *auth.Employee) error {
 	}
 
 	if req.Status.isInvalid(&invalidStatuses) {
-		return core_errors.ErrRequestActionNotPermittedByStatus
+		return deterrs.NewDetErr(
+			deterrs.RequestActionNotPermittedByStatus,
+		)
 	}
 
 	req.Employee = emp
@@ -96,13 +119,22 @@ func (req *Request) Schedule(date *time.Time) error {
 	}
 
 	if date == nil {
-		return core_errors.NewErrEmptyField("date")
+		return deterrs.NewDetErr(
+			deterrs.EmptyField,
+			deterrs.WithField("scheduled date"),
+		)
 	}
-	if date.Before(time.Now()) {
-		return core_errors.ErrInvalidDate
+	if err := utils.MustNotPast(date); err != nil {
+		return deterrs.NewDetErr(
+			deterrs.InvalidValue,
+			deterrs.WithField("sheduled date"),
+			deterrs.WithOriginalError(err),
+		)
 	}
 	if !req.Status.isValid(&validStatuses) {
-		return core_errors.ErrRequestActionNotPermittedByStatus
+		return deterrs.NewDetErr(
+			deterrs.RequestActionNotPermittedByStatus,
+		)
 	}
 
 	req.Status = StatusScheduled
@@ -117,11 +149,16 @@ func (req *Request) ConfirmSchedule() error {
 	}
 
 	if !req.Status.isValid(&validStatuses) {
-		return core_errors.ErrRequestActionNotPermittedByStatus
+		return deterrs.NewDetErr(
+			deterrs.RequestActionNotPermittedByStatus,
+		)
 	}
 
 	if req.ScheduledFor == nil {
-		return core_errors.ErrInvalidDate
+		return deterrs.NewDetErr(
+			deterrs.EmptyField,
+			deterrs.WithField("scheduled date"),
+		)
 	}
 
 	req.Status = StatusScheduled
@@ -135,7 +172,9 @@ func (req *Request) Progress(empDescription string) error {
 	}
 
 	if !req.Status.isValid(&validStatuses) {
-		return core_errors.ErrRequestActionNotPermittedByStatus
+		return deterrs.NewDetErr(
+			deterrs.RequestActionNotPermittedByStatus,
+		)
 	}
 
 	req.Status = StatusInProgress
@@ -151,7 +190,9 @@ func (req *Request) Complete() error {
 	}
 
 	if !req.Status.isValid(&validStatuses) {
-		return core_errors.ErrRequestActionNotPermittedByStatus
+		return deterrs.NewDetErr(
+			deterrs.RequestActionNotPermittedByStatus,
+		)
 	}
 
 	req.Status = StatusDone
@@ -165,7 +206,9 @@ func (req *Request) Close() error {
 	}
 
 	if !req.Status.isValid(&validStatuses) {
-		return core_errors.ErrRequestActionNotPermittedByStatus
+		return deterrs.NewDetErr(
+			deterrs.RequestActionNotPermittedByStatus,
+		)
 	}
 
 	req.Status = StatusPaid
@@ -180,7 +223,9 @@ func (req *Request) Cancel(cause string) error {
 	}
 
 	if req.Status.isInvalid(&invalidStatuses) {
-		return core_errors.ErrRequestActionNotPermittedByStatus
+		return deterrs.NewDetErr(
+			deterrs.RequestActionNotPermittedByStatus,
+		)
 	}
 
 	req.CancelReason = &cause
@@ -197,7 +242,9 @@ func (req *Request) Patch(patchedFields *RequestPatcher) error {
 	}
 
 	if req.Status.isInvalid(&invalidStatuses) {
-		return core_errors.ErrRequestActionNotPermittedByStatus
+		return deterrs.NewDetErr(
+			deterrs.RequestActionNotPermittedByStatus,
+		)
 	}
 
 	if patchedFields.ClientName != nil {

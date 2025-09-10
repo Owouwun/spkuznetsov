@@ -6,7 +6,7 @@ import (
 
 	"github.com/seagumineko/spkuznetsov/internal/core/logic/auth"
 	"github.com/seagumineko/spkuznetsov/internal/core/logic/requests"
-	core_errors "github.com/seagumineko/spkuznetsov/internal/errors"
+	deterrs "github.com/seagumineko/spkuznetsov/internal/errors"
 	"github.com/seagumineko/spkuznetsov/internal/testutils"
 )
 
@@ -52,7 +52,9 @@ func TestNewRequest(t *testing.T) {
 				ClientDescription: testutils.ClientDescription,
 			},
 			expReq: nil,
-			expErr: core_errors.ErrInvalidPhoneNumber,
+			expErr: deterrs.NewDetErr(
+				deterrs.InvalidValue,
+			),
 		},
 		{
 			name: "Попытка создать заявку без имени клиента",
@@ -63,7 +65,9 @@ func TestNewRequest(t *testing.T) {
 				ClientDescription: testutils.ClientDescription,
 			},
 			expReq: nil,
-			expErr: core_errors.ErrEmptyField,
+			expErr: deterrs.NewDetErr(
+				deterrs.EmptyField,
+			),
 		},
 	}
 
@@ -134,7 +138,9 @@ func TestPreschedule(t *testing.T) {
 				testutils.WithStatus(requests.StatusCanceled),
 				testutils.WithScheduledFor(nil),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 		{
 			name: "Попытка назначить предварительную дату для выполненной заявки",
@@ -147,7 +153,9 @@ func TestPreschedule(t *testing.T) {
 				testutils.WithStatus(requests.StatusDone),
 				testutils.WithScheduledFor(nil),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 	}
 
@@ -195,7 +203,9 @@ func TestAssign(t *testing.T) {
 				testutils.WithEmployee(nil),
 				testutils.WithStatus(requests.StatusCanceled),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 	}
 
@@ -251,7 +261,9 @@ func TestSchedule(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusDone),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 		{
 			name: "Попытка запланировать отменённые работы",
@@ -262,7 +274,9 @@ func TestSchedule(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusCanceled),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 	}
 
@@ -305,7 +319,9 @@ func TestConfirmSchedule(t *testing.T) {
 				testutils.WithStatus(requests.StatusAssigned),
 				testutils.WithScheduledFor(nil),
 			),
-			expErr: core_errors.ErrInvalidDate,
+			expErr: deterrs.NewDetErr(
+				deterrs.EmptyField,
+			),
 		},
 		{
 			name: "Попытка подтвердить отменённые работы",
@@ -315,7 +331,9 @@ func TestConfirmSchedule(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusCanceled),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 	}
 
@@ -359,7 +377,9 @@ func TestProgress(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusDone),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 		{
 			name: "Попытка прогресса в отменённой заявке",
@@ -370,7 +390,9 @@ func TestProgress(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusCanceled),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 	}
 
@@ -408,7 +430,9 @@ func TestComplete(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusNew),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 		{
 			name: "Попытка завершения отменённой заявки",
@@ -418,7 +442,9 @@ func TestComplete(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusCanceled),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 		{
 			name: "Попытка завершения завершённой заявки",
@@ -428,7 +454,9 @@ func TestComplete(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusDone),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 		{
 			name: "Попытка завершения закрытой заявки",
@@ -438,7 +466,9 @@ func TestComplete(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusPaid),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 	}
 
@@ -476,7 +506,9 @@ func TestClose(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusScheduled),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 		{
 			name: "Попытка закрытия отменённой заявки",
@@ -486,7 +518,9 @@ func TestClose(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusCanceled),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 		{
 			name: "Попытка закрытия закрытой заявки",
@@ -496,7 +530,9 @@ func TestClose(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusPaid),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 	}
 
@@ -554,7 +590,9 @@ func TestCancel(t *testing.T) {
 				testutils.WithStatus(requests.StatusCanceled),
 				testutils.WithCancelReason(testutils.FilledCancelReason),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 		{
 			name: "Попытка отмены оплаченной заявки",
@@ -565,7 +603,9 @@ func TestCancel(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusPaid),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 	}
 
@@ -626,7 +666,9 @@ func TestPatch(t *testing.T) {
 			expReq: testutils.NewTestRequest(
 				testutils.WithStatus(requests.StatusCanceled),
 			),
-			expErr: core_errors.ErrRequestActionNotPermittedByStatus,
+			expErr: deterrs.NewDetErr(
+				deterrs.RequestActionNotPermittedByStatus,
+			),
 		},
 	}
 

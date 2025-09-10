@@ -1,9 +1,13 @@
 package testutils
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func AssertError(t *testing.T, expected, actual error) {
-	if actual != expected {
-		t.Errorf("Expected error: '%v', got: '%v'", expected, actual)
+	if !errors.Is(expected, actual) {
+		t.Errorf("expected error: '%v', got: '%v'", expected, actual)
+		return
 	}
 }
