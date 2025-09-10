@@ -22,7 +22,7 @@ func (e *DetErr) Error() string {
 	if e == nil {
 		return "<nil>"
 	}
-	return fmt.Sprintf("Type: %s, Details: %v, Cause: %v", e.Type, e.Details, e.Cause)
+	return fmt.Sprintf("{Type: %s, Details: %v, Cause: %v}", e.Type, e.Details, e.Cause)
 }
 
 func (e *DetErr) Is(target error) bool {
@@ -55,7 +55,7 @@ const (
 	EmptyField   DetErrType = "field must be filled"
 	InvalidValue DetErrType = "invalid value"
 
-	RequestActionNotPermittedByStatus DetErrType = "action permitted by request ststus"
+	RequestActionNotPermittedByStatus DetErrType = "action permitted by request status"
 
 	NotImplemented DetErrType = "action not implemented"
 	Unknown        DetErrType = "unknow error type"
