@@ -57,6 +57,9 @@ const (
 
 	RequestActionNotPermittedByStatus DetErrType = "action permitted by request status"
 
+	QueryInsertFailed = "failed to insert"
+	QuerySelectFailed = "failed to select"
+
 	NotImplemented DetErrType = "action not implemented"
 	Unknown        DetErrType = "unknow error type"
 )

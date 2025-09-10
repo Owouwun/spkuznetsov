@@ -87,7 +87,7 @@ func NewTestRequest(opts ...requestOption) *requests.Request {
 		Address:           "ул. Примерная, д. 1",
 		ClientDescription: "Обычный клиент",
 		PublicLink:        "example.com/abracadabra",
-		Employee:          &auth.Employee{Name: "Петр Петров"},
+		Employee:          &auth.Employee{ID: 1, Name: "Петр Петров"},
 		Status:            requests.StatusScheduled,
 		ScheduledFor:      nil,
 	}

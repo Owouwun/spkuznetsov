@@ -19,6 +19,28 @@ const (
 	StatusCanceled     Status = -1 // "Отменена"
 )
 
+func (s Status) ToString() string {
+	switch s {
+	case StatusNew:
+		return "New"
+	case StatusPrescheduled:
+		return "Prescheduled"
+	case StatusAssigned:
+		return "Assigned"
+	case StatusScheduled:
+		return "Scheduled"
+	case StatusInProgress:
+		return "InProgress"
+	case StatusDone:
+		return "Done"
+	case StatusPaid:
+		return "Paid"
+	case StatusCanceled:
+		return "Canceled"
+	}
+	return ""
+}
+
 type PrimaryRequest struct {
 	ClientName        string `json:"client_name"`
 	ClientPhone       string `json:"client_phone"`

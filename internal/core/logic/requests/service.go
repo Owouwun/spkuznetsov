@@ -21,7 +21,6 @@ func (s *Status) isInvalid(invalidStatuses *[]Status) bool {
 }
 
 // Оформить новую заявку
-// Ключи inputData: ClientName, ClientPhone, Address и, возможно, ClientDescription
 func (preq *PrimaryRequest) CreateNewRequest() (*Request, error) {
 	if preq.ClientName == "" {
 		return nil, deterrs.NewDetErr(

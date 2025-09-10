@@ -1,17 +1,8 @@
-CREATE TYPE status_enum AS ENUM (
-    'New',
-    'Prescheduled',
-    'Assigned',
-    'Scheduled',
-    'InProgress',
-    'Done',
-    'Paid',
-    'Canceled'
-);
-
 CREATE TABLE IF NOT EXISTS employees (
-    id BIGSERIAL PRIMARY KEY
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL
 );
+INSERT INTO employees (name) VALUES ('Петр Петров');
 
 CREATE TABLE requests (
     id BIGSERIAL PRIMARY KEY,
@@ -22,7 +13,7 @@ CREATE TABLE requests (
     public_link TEXT,
     employee_id BIGINT REFERENCES employees(id) ON DELETE SET NULL,
     cancel_reason TEXT,
-    status status_enum NOT NULL DEFAULT 'New',
+    status INTEGER NOT NULL,
     employee_description TEXT,
     scheduled_for TIMESTAMP WITH TIME ZONE
 );
