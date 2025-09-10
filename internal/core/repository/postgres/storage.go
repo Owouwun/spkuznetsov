@@ -84,9 +84,71 @@ func (r *PostgresRequestRepository) CreateRequest(ctx context.Context, req *requ
 }
 
 func (r *PostgresRequestRepository) UpdateRequest(ctx context.Context, id int64, req *requests.Request) error {
-	return deterrs.NewDetErr(
-		deterrs.NotImplemented,
+	query := `
+		UPDATE requests 
+		SET 
+			client_name = $1,
+			client_phone = $2,
+			address = $3,
+			client_description = $4,
+			public_link = $5,
+			employee_id = $6,
+			cancel_reason = $7,
+			status = $8,
+			employee_description = $9,
+			scheduled_for = $10
+		WHERE id = $11
+	`
+
+	var employeeID interface{}
+	if req.Employee != nil {
+		employeeID = req.Employee.ID
+	} else {
+		employeeID = nil
+	}
+
+	var cancelReason interface{}
+	if req.CancelReason != nil {
+		cancelReason = *req.CancelReason
+	} else {
+		cancelReason = nil
+	}
+
+	var scheduledFor interface{}
+	if req.ScheduledFor != nil {
+		scheduledFor = *req.ScheduledFor
+	} else {
+		scheduledFor = nil
+	}
+
+	result, err := r.db.ExecContext(ctx, query,
+		req.ClientName,
+		req.ClientPhone,
+		req.Address,
+		req.ClientDescription,
+		req.PublicLink,
+		employeeID,
+		cancelReason,
+		req.Status,
+		req.EmployeeDescription,
+		scheduledFor,
+		id,
 	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update request: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("request with id %d not found", id)
+	}
+
+	return nil
 }
 
 func (r *PostgresRequestRepository) GetRequest(ctx context.Context, id int64) (*requests.Request, error) {

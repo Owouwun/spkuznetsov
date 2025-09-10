@@ -17,6 +17,29 @@ CREATE TABLE requests (
     employee_description TEXT,
     scheduled_for TIMESTAMP WITH TIME ZONE
 );
+INSERT INTO requests (
+    client_name,
+    client_phone,
+    address,
+    client_description,
+    public_link,
+    employee_id,
+    cancel_reason,
+    status,
+    employee_description,
+    scheduled_for
+) VALUES (
+    'Иван Иванов',
+    '+71112223344',
+    'ул. Тестовая, д. 1',
+    'Что-то сломалось',
+    'abracadabra',
+    1,
+    NULL,
+    1,
+    NULL,
+    NULL
+);
 
 CREATE INDEX idx_requests_status ON requests(status);
 CREATE INDEX idx_requests_employee_id ON requests(employee_id);
