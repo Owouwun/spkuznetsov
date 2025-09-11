@@ -6,16 +6,19 @@ import (
 	"embed"
 	"fmt"
 	"testing"
-	"time"
 
+	"github.com/docker/go-connections/nat"
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
+	migpostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/seagumineko/spkuznetsov/internal/testutils"
 	"github.com/seagumineko/spkuznetsov/pkg/logger"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 const (
@@ -25,8 +28,15 @@ const (
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
-func runPostgresContainer() (context.Context, testcontainers.Container, error) {
+func setupTestDB(t *testing.T) (*gorm.DB, func()) {
+	t.Helper()
+
 	ctx := context.Background()
+
+	dsnProvider := func(host string, port nat.Port) string {
+		return fmt.Sprintf("host=%s port=%d user=user password=password dbname=testdb sslmode=disable", host, port.Int())
+	}
+
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:15-alpine",
 		ExposedPorts: []string{containerPort + "/tcp"},
@@ -36,23 +46,66 @@ func runPostgresContainer() (context.Context, testcontainers.Container, error) {
 			"POSTGRES_PASSWORD": "password",
 		},
 		WaitingFor: wait.ForAll(
-			wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(30*time.Second),
-			wait.ForListeningPort(containerPort).WithStartupTimeout(30*time.Second),
+			wait.ForLog("database system is ready to accept connections").WithOccurrence(1),
+			wait.ForListeningPort(containerPort),
+			wait.ForSQL(nat.Port(containerPort), "postgres", dsnProvider),
 		),
 	}
+
 	postgresContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
 	})
 	if err != nil {
-		return nil, nil, err
+		t.Fatal(err)
 	}
 
-	return ctx, postgresContainer, nil
+	host, err := postgresContainer.Host(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := postgresContainer.MappedPort(ctx, containerPort)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	finalDSN := dsnProvider(host, port)
+	sqlDB, err := sql.Open("postgres", finalDSN)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = runTestMigrations(sqlDB)
+	if err != nil {
+		sqlDB.Close()
+		t.Fatal(err)
+	}
+
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: sqlDB,
+	}), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{
+			TablePrefix:   "public.",
+			SingularTable: false,
+		},
+	})
+	if err != nil {
+		sqlDB.Close()
+		t.Fatal(err)
+	}
+
+	cleanup := func() {
+		sqlDB.Close()
+		logger.LogIfErr(t, "error while terminating container: %v",
+			postgresContainer.Terminate, ctx,
+		)
+	}
+
+	return gormDB, cleanup
 }
 
 func runTestMigrations(db *sql.DB) error {
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	driver, err := migpostgres.WithInstance(db, &migpostgres.Config{})
 	if err != nil {
 		return err
 	}
@@ -76,46 +129,18 @@ func runTestMigrations(db *sql.DB) error {
 }
 
 func TestRequestRepository_CreateRequest(t *testing.T) {
-	ctx, postgresContainer, err := runPostgresContainer()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer logger.LogIfErr(t, "error while terminating container: %v",
-		postgresContainer.Terminate, ctx,
-	)
+	gormDB, cleanup := setupTestDB(t)
+	defer cleanup()
 
-	host, err := postgresContainer.Host(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	port, err := postgresContainer.MappedPort(ctx, containerPort)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dsn := fmt.Sprintf("host=%s port=%d user=user password=password dbname=testdb sslmode=disable", host, port.Int())
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer logger.LogIfErr(t, "error while closing db: %v",
-		db.Close,
-	)
-
-	err = runTestMigrations(db)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	repo := NewRequestRepository(db)
+	repo := NewRequestRepository(gormDB)
 	newRequest := testutils.NewTestRequest()
 
-	requestID, err := repo.CreateRequest(ctx, newRequest)
+	requestID, err := repo.CreateRequest(context.Background(), newRequest)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 
-	request, err := repo.GetRequest(ctx, requestID)
+	request, err := repo.GetRequest(context.Background(), requestID)
 	if err != nil {
 		t.Fatalf("Failed to get request: %v", err)
 	}
@@ -124,52 +149,36 @@ func TestRequestRepository_CreateRequest(t *testing.T) {
 }
 
 func TestRequestRepository_UpdateRequest(t *testing.T) {
-	ctx, postgresContainer, err := runPostgresContainer()
+	gormDB, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	repo := NewRequestRepository(gormDB)
+
+	// Создаем тестовую заявку, которую будем обновлять.
+	createdRequest := testutils.NewTestRequest()
+	requestID, err := repo.CreateRequest(context.Background(), createdRequest)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to create request for update: %v", err)
 	}
-	defer logger.LogIfErr(t, "error while terminating container: %v",
-		postgresContainer.Terminate, ctx,
+
+	// Создаем новую структуру с измененными данными.
+	updatedRequest := testutils.NewTestRequest(
+		testutils.WithAddress("Updated GORM Test Address"),
 	)
 
-	host, err := postgresContainer.Host(ctx)
+	// Теперь вызываем метод UpdateRequest.
+	err = repo.UpdateRequest(context.Background(), requestID, updatedRequest)
 	if err != nil {
-		t.Fatal(err)
-	}
-	port, err := postgresContainer.MappedPort(ctx, containerPort)
-	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to update request: %v", err)
 	}
 
-	dsn := fmt.Sprintf("host=%s port=%d user=user password=password dbname=testdb sslmode=disable", host, port.Int())
-	db, err := sql.Open("postgres", dsn)
+	// Получаем обновленную запись и проверяем.
+	resultRequest, err := repo.GetRequest(context.Background(), requestID)
 	if err != nil {
-		t.Fatal(err)
-	}
-	defer logger.LogIfErr(t, "error while closing db: %v",
-		db.Close,
-	)
-
-	err = runTestMigrations(db)
-	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to get updated request: %v", err)
 	}
 
-	repo := NewRequestRepository(db)
-	newRequest := testutils.NewTestRequest(
-		testutils.WithAddress("New postgres test address"),
-	)
-	var requestID int64 = 1
-
-	err = repo.UpdateRequest(ctx, int64(requestID), newRequest)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	request, err := repo.GetRequest(ctx, requestID)
-	if err != nil {
-		t.Fatalf("Failed to get request: %v", err)
-	}
-
-	testutils.ValidateRequest(t, newRequest, request)
+	// Заменяем ID в эталонной структуре, чтобы ValidateRequest не ругался.
+	updatedRequest.ID = requestID
+	testutils.ValidateRequest(t, updatedRequest, resultRequest)
 }

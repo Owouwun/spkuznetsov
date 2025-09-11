@@ -7,7 +7,7 @@ import (
 )
 
 type RequestRepository interface {
-	CreateRequest(ctx context.Context, req *requests.Request) (int64, error)
-	UpdateRequest(ctx context.Context, id int64, req *requests.Request) error
-	GetRequest(ctx context.Context, id int64) (*requests.Request, error)
+	CreateRequest(ctx context.Context, req *requests.Request) (uint, error)
+	UpdateRequest(ctx context.Context, id uint, req *requests.Request) error
+	GetRequest(ctx context.Context, id uint) (*requests.Request, error)
 }

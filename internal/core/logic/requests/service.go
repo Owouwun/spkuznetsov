@@ -78,7 +78,7 @@ func (req *Request) Preschedule(date *time.Time) error {
 	}
 
 	if date != nil {
-		if err := utils.MustNotPast(date); err!=nil {
+		if err := utils.MustNotPast(date); err != nil {
 			return deterrs.NewDetErr(
 				deterrs.InvalidValue,
 				deterrs.WithField("scheduled date"),

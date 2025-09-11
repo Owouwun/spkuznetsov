@@ -87,7 +87,7 @@ func NewTestRequest(opts ...requestOption) *requests.Request {
 		Address:           "ул. Примерная, д. 1",
 		ClientDescription: "Обычный клиент",
 		PublicLink:        "example.com/abracadabra",
-		Employee:          &auth.Employee{ID: 1, Name: "Петр Петров"},
+		Employee:          &auth.Employee{Name: "Петр Петров"},
 		Status:            requests.StatusScheduled,
 		ScheduledFor:      nil,
 	}
@@ -121,9 +121,21 @@ func ValidateRequest(t *testing.T, expected, actual *requests.Request) {
 	compare("ClientPhone", expected.ClientPhone, actual.ClientPhone)
 	compare("Address", expected.Address, actual.Address)
 	compare("ClientDescription", expected.ClientDescription, actual.ClientDescription)
-	compare("Employee", expected.Employee, actual.Employee)
 	compare("CancelReason", expected.CancelReason, actual.CancelReason)
 	compare("Status", expected.Status, actual.Status)
 	compare("EmployeeDescription", expected.EmployeeDescription, actual.EmployeeDescription)
 	compare("ScheduledFor", expected.ScheduledFor, actual.ScheduledFor)
+
+	if expected.Employee == nil {
+		if actual.Employee == nil {
+			return
+		}
+		t.Errorf("Got non-nil value, while expected nil")
+		return
+	}
+	if actual.Employee == nil {
+		t.Errorf("Got nil value, while expected non-nil")
+		return
+	}
+	compare("EmployeeID", expected.Employee.ID, actual.Employee.ID)
 }
