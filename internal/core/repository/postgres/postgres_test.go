@@ -77,7 +77,10 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 
 	err = runTestMigrations(sqlDB)
 	if err != nil {
-		sqlDB.Close()
+		err = sqlDB.Close()
+		if err != nil {
+			t.Log(err)
+		}
 		t.Fatal(err)
 	}
 
@@ -90,12 +93,18 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 		},
 	})
 	if err != nil {
-		sqlDB.Close()
+		err = sqlDB.Close()
+		if err != nil {
+			t.Log(err)
+		}
 		t.Fatal(err)
 	}
 
 	cleanup := func() {
-		sqlDB.Close()
+		err = sqlDB.Close()
+		if err != nil {
+			t.Log(err)
+		}
 		logger.LogIfErr(t, "error while terminating container: %v",
 			postgresContainer.Terminate, ctx,
 		)
@@ -154,31 +163,26 @@ func TestRequestRepository_UpdateRequest(t *testing.T) {
 
 	repo := NewRequestRepository(gormDB)
 
-	// Создаем тестовую заявку, которую будем обновлять.
 	createdRequest := testutils.NewTestRequest()
 	requestID, err := repo.CreateRequest(context.Background(), createdRequest)
 	if err != nil {
 		t.Fatalf("Failed to create request for update: %v", err)
 	}
 
-	// Создаем новую структуру с измененными данными.
 	updatedRequest := testutils.NewTestRequest(
 		testutils.WithAddress("Updated GORM Test Address"),
 	)
 
-	// Теперь вызываем метод UpdateRequest.
 	err = repo.UpdateRequest(context.Background(), requestID, updatedRequest)
 	if err != nil {
 		t.Fatalf("Failed to update request: %v", err)
 	}
 
-	// Получаем обновленную запись и проверяем.
 	resultRequest, err := repo.GetRequest(context.Background(), requestID)
 	if err != nil {
 		t.Fatalf("Failed to get updated request: %v", err)
 	}
 
-	// Заменяем ID в эталонной структуре, чтобы ValidateRequest не ругался.
 	updatedRequest.ID = requestID
 	testutils.ValidateRequest(t, updatedRequest, resultRequest)
 }
