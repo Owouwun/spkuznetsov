@@ -1,9 +1,9 @@
-package requests
+package orders
 
 import (
 	"time"
 
-	"github.com/seagumineko/spkuznetsov/internal/core/logic/auth"
+	"github.com/Owouwun/spkuznetsov/internal/core/logic/auth"
 	"gorm.io/gorm"
 )
 
@@ -42,14 +42,14 @@ func (s Status) ToString() string {
 	return ""
 }
 
-type PrimaryRequest struct {
+type PrimaryOrder struct {
 	ClientName        string `json:"client_name"`
 	ClientPhone       string `json:"client_phone"`
 	Address           string `json:"address"`
 	ClientDescription string `json:"client_description"`
 }
 
-type Request struct {
+type Order struct {
 	// Immutable
 	ClientName        string         `json:"client_name"`
 	ClientPhone       string         `json:"client_phone"`
@@ -69,7 +69,7 @@ type Request struct {
 	EmployeeID *uint64 `json:"employee_id,omitempty"`
 }
 
-type RequestPatcher struct {
+type OrderPatcher struct {
 	ClientName          *string `json:"client_name,omitempty"`
 	ClientPhone         *string `json:"client_phone,omitempty"`
 	Address             *string `json:"address,omitempty"`

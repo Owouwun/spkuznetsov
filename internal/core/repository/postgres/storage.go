@@ -3,21 +3,21 @@ package repository_postgres
 import (
 	"context"
 
-	"github.com/seagumineko/spkuznetsov/internal/core/logic/requests"
-	"github.com/seagumineko/spkuznetsov/internal/core/repository"
-	deterrs "github.com/seagumineko/spkuznetsov/internal/errors"
+	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
+	"github.com/Owouwun/spkuznetsov/internal/core/repository"
+	deterrs "github.com/Owouwun/spkuznetsov/internal/errors"
 	"gorm.io/gorm"
 )
 
-type GormRequestRepository struct {
+type GormOrderRepository struct {
 	db *gorm.DB
 }
 
-func NewRequestRepository(db *gorm.DB) repository.RequestRepository {
-	return &GormRequestRepository{db: db}
+func NewOrderRepository(db *gorm.DB) repository.OrderRepository {
+	return &GormOrderRepository{db: db}
 }
 
-func (r *GormRequestRepository) CreateRequest(ctx context.Context, req *requests.Request) (uint, error) {
+func (r *GormOrderRepository) CreateOrder(ctx context.Context, req *orders.Order) (uint, error) {
 	result := r.db.WithContext(ctx).Create(&req)
 	if result.Error != nil {
 		return 0, deterrs.NewDetErr(
@@ -28,7 +28,7 @@ func (r *GormRequestRepository) CreateRequest(ctx context.Context, req *requests
 	return req.ID, nil
 }
 
-func (r *GormRequestRepository) UpdateRequest(ctx context.Context, id uint, req *requests.Request) error {
+func (r *GormOrderRepository) UpdateOrder(ctx context.Context, id uint, req *orders.Order) error {
 	req.ID = id
 	result := r.db.WithContext(ctx).Save(&req)
 	if result.Error != nil {
@@ -45,8 +45,8 @@ func (r *GormRequestRepository) UpdateRequest(ctx context.Context, id uint, req 
 	return nil
 }
 
-func (r *GormRequestRepository) GetRequest(ctx context.Context, id uint) (*requests.Request, error) {
-	var req requests.Request
+func (r *GormOrderRepository) GetOrder(ctx context.Context, id uint) (*orders.Order, error) {
+	var req orders.Order
 	result := r.db.WithContext(ctx).Preload("Employee").First(&req, id)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {

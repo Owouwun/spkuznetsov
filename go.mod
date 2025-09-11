@@ -1,4 +1,4 @@
-module github.com/seagumineko/spkuznetsov
+module github.com/Owouwun/spkuznetsov
 
 go 1.24.5
 

@@ -3,11 +3,11 @@ package repository
 import (
 	"context"
 
-	"github.com/seagumineko/spkuznetsov/internal/core/logic/requests"
+	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
 )
 
-type RequestRepository interface {
-	CreateRequest(ctx context.Context, req *requests.Request) (uint, error)
-	UpdateRequest(ctx context.Context, id uint, req *requests.Request) error
-	GetRequest(ctx context.Context, id uint) (*requests.Request, error)
+type OrderRepository interface {
+	CreateOrder(ctx context.Context, req *orders.Order) (uint, error)
+	UpdateOrder(ctx context.Context, id uint, req *orders.Order) error
+	GetOrder(ctx context.Context, id uint) (*orders.Order, error)
 }

@@ -1,11 +1,11 @@
-package requests
+package orders
 
 import (
 	"time"
 
-	"github.com/seagumineko/spkuznetsov/internal/core/logic/auth"
-	deterrs "github.com/seagumineko/spkuznetsov/internal/errors"
-	"github.com/seagumineko/spkuznetsov/pkg/utils"
+	"github.com/Owouwun/spkuznetsov/internal/core/logic/auth"
+	deterrs "github.com/Owouwun/spkuznetsov/internal/errors"
+	"github.com/Owouwun/spkuznetsov/pkg/utils"
 )
 
 func (s *Status) isValid(validStatuses *[]Status) bool {
@@ -21,27 +21,27 @@ func (s *Status) isInvalid(invalidStatuses *[]Status) bool {
 }
 
 // Оформить новую заявку
-func (preq *PrimaryRequest) CreateNewRequest() (*Request, error) {
-	if preq.ClientName == "" {
+func (pord *PrimaryOrder) CreateNewOrder() (*Order, error) {
+	if pord.ClientName == "" {
 		return nil, deterrs.NewDetErr(
 			deterrs.EmptyField,
 			deterrs.WithField("client name"),
 		)
 	}
-	if preq.ClientPhone == "" {
+	if pord.ClientPhone == "" {
 		return nil, deterrs.NewDetErr(
 			deterrs.EmptyField,
 			deterrs.WithField("client phone"),
 		)
 	}
-	if preq.Address == "" {
+	if pord.Address == "" {
 		return nil, deterrs.NewDetErr(
 			deterrs.EmptyField,
 			deterrs.WithField("address"),
 		)
 	}
 
-	stdPN, err := utils.StandartizePhoneNumber(preq.ClientPhone)
+	stdPN, err := utils.StandartizePhoneNumber(pord.ClientPhone)
 	if err != nil {
 		return nil, deterrs.NewDetErr(
 			deterrs.InvalidValue,
@@ -50,19 +50,19 @@ func (preq *PrimaryRequest) CreateNewRequest() (*Request, error) {
 		)
 	}
 
-	req := &Request{
-		ClientName:        preq.ClientName,
+	ord := &Order{
+		ClientName:        pord.ClientName,
 		ClientPhone:       stdPN,
-		Address:           preq.Address,
-		ClientDescription: preq.ClientDescription,
+		Address:           pord.Address,
+		ClientDescription: pord.ClientDescription,
 		PublicLink:        utils.GenerateRandomString(),
 		Status:            StatusNew,
 	}
-	return req, nil
+	return ord, nil
 }
 
 // Назначить предварительную дату работ
-func (req *Request) Preschedule(date *time.Time) error {
+func (ord *Order) Preschedule(date *time.Time) error {
 	validStatuses := []Status{
 		StatusNew,
 		StatusPrescheduled,
@@ -71,9 +71,9 @@ func (req *Request) Preschedule(date *time.Time) error {
 		StatusInProgress,
 	}
 
-	if !req.Status.isValid(&validStatuses) {
+	if !ord.Status.isValid(&validStatuses) {
 		return deterrs.NewDetErr(
-			deterrs.RequestActionNotPermittedByStatus,
+			deterrs.OrderActionNotPermittedByStatus,
 		)
 	}
 
@@ -87,31 +87,31 @@ func (req *Request) Preschedule(date *time.Time) error {
 		}
 	}
 
-	req.Status = StatusPrescheduled
-	req.ScheduledFor = date
+	ord.Status = StatusPrescheduled
+	ord.ScheduledFor = date
 	return nil
 }
 
 // Назначить ответственного сотрудника
-func (req *Request) Assign(emp *auth.Employee) error {
+func (ord *Order) Assign(emp *auth.Employee) error {
 	invalidStatuses := []Status{
 		StatusNew,
 		StatusCanceled,
 	}
 
-	if req.Status.isInvalid(&invalidStatuses) {
+	if ord.Status.isInvalid(&invalidStatuses) {
 		return deterrs.NewDetErr(
-			deterrs.RequestActionNotPermittedByStatus,
+			deterrs.OrderActionNotPermittedByStatus,
 		)
 	}
 
-	req.Employee = emp
-	req.Status = StatusAssigned
+	ord.Employee = emp
+	ord.Status = StatusAssigned
 	return nil
 }
 
 // Назначить точную дату выполнения работ
-func (req *Request) Schedule(date *time.Time) error {
+func (ord *Order) Schedule(date *time.Time) error {
 	validStatuses := []Status{
 		StatusAssigned,
 		StatusInProgress,
@@ -130,136 +130,136 @@ func (req *Request) Schedule(date *time.Time) error {
 			deterrs.WithOriginalError(err),
 		)
 	}
-	if !req.Status.isValid(&validStatuses) {
+	if !ord.Status.isValid(&validStatuses) {
 		return deterrs.NewDetErr(
-			deterrs.RequestActionNotPermittedByStatus,
+			deterrs.OrderActionNotPermittedByStatus,
 		)
 	}
 
-	req.Status = StatusScheduled
-	req.ScheduledFor = date
+	ord.Status = StatusScheduled
+	ord.ScheduledFor = date
 	return nil
 }
 
 // Определить предварительную дату выполнения работ как точную
-func (req *Request) ConfirmSchedule() error {
+func (ord *Order) ConfirmSchedule() error {
 	validStatuses := []Status{
 		StatusAssigned,
 	}
 
-	if !req.Status.isValid(&validStatuses) {
+	if !ord.Status.isValid(&validStatuses) {
 		return deterrs.NewDetErr(
-			deterrs.RequestActionNotPermittedByStatus,
+			deterrs.OrderActionNotPermittedByStatus,
 		)
 	}
 
-	if req.ScheduledFor == nil {
+	if ord.ScheduledFor == nil {
 		return deterrs.NewDetErr(
 			deterrs.EmptyField,
 			deterrs.WithField("scheduled date"),
 		)
 	}
 
-	req.Status = StatusScheduled
+	ord.Status = StatusScheduled
 	return nil
 }
 
 // Описать частично проведённые работы
-func (req *Request) Progress(empDescription string) error {
+func (ord *Order) Progress(empDescription string) error {
 	validStatuses := []Status{
 		StatusScheduled,
 	}
 
-	if !req.Status.isValid(&validStatuses) {
+	if !ord.Status.isValid(&validStatuses) {
 		return deterrs.NewDetErr(
-			deterrs.RequestActionNotPermittedByStatus,
+			deterrs.OrderActionNotPermittedByStatus,
 		)
 	}
 
-	req.Status = StatusInProgress
-	req.ScheduledFor = nil
-	req.EmployeeDescription = empDescription
+	ord.Status = StatusInProgress
+	ord.ScheduledFor = nil
+	ord.EmployeeDescription = empDescription
 	return nil
 }
 
 // Пометить заявку как выполненную
-func (req *Request) Complete() error {
+func (ord *Order) Complete() error {
 	validStatuses := []Status{
 		StatusInProgress,
 	}
 
-	if !req.Status.isValid(&validStatuses) {
+	if !ord.Status.isValid(&validStatuses) {
 		return deterrs.NewDetErr(
-			deterrs.RequestActionNotPermittedByStatus,
+			deterrs.OrderActionNotPermittedByStatus,
 		)
 	}
 
-	req.Status = StatusDone
+	ord.Status = StatusDone
 	return nil
 }
 
 // Закрыть заявку (после получения оплаты)
-func (req *Request) Close() error {
+func (ord *Order) Close() error {
 	validStatuses := []Status{
 		StatusDone,
 	}
 
-	if !req.Status.isValid(&validStatuses) {
+	if !ord.Status.isValid(&validStatuses) {
 		return deterrs.NewDetErr(
-			deterrs.RequestActionNotPermittedByStatus,
+			deterrs.OrderActionNotPermittedByStatus,
 		)
 	}
 
-	req.Status = StatusPaid
+	ord.Status = StatusPaid
 	return nil
 }
 
 // Отменить заявку с указанием причины
-func (req *Request) Cancel(cause string) error {
+func (ord *Order) Cancel(cause string) error {
 	invalidStatuses := []Status{
 		StatusPaid,
 		StatusCanceled,
 	}
 
-	if req.Status.isInvalid(&invalidStatuses) {
+	if ord.Status.isInvalid(&invalidStatuses) {
 		return deterrs.NewDetErr(
-			deterrs.RequestActionNotPermittedByStatus,
+			deterrs.OrderActionNotPermittedByStatus,
 		)
 	}
 
-	req.CancelReason = &cause
-	req.Status = StatusCanceled
-	req.ScheduledFor = nil
+	ord.CancelReason = &cause
+	ord.Status = StatusCanceled
+	ord.ScheduledFor = nil
 	return nil
 }
 
 // Модифицировать поля заявки
-func (req *Request) Patch(patchedFields *RequestPatcher) error {
+func (ord *Order) Patch(patchedFields *OrderPatcher) error {
 	invalidStatuses := []Status{
 		StatusPaid,
 		StatusCanceled,
 	}
 
-	if req.Status.isInvalid(&invalidStatuses) {
+	if ord.Status.isInvalid(&invalidStatuses) {
 		return deterrs.NewDetErr(
-			deterrs.RequestActionNotPermittedByStatus,
+			deterrs.OrderActionNotPermittedByStatus,
 		)
 	}
 
 	if patchedFields.ClientName != nil {
-		req.ClientName = *patchedFields.ClientName
+		ord.ClientName = *patchedFields.ClientName
 	}
 	if patchedFields.ClientPhone != nil {
-		req.ClientPhone = *patchedFields.ClientPhone
+		ord.ClientPhone = *patchedFields.ClientPhone
 	}
 	if patchedFields.Address != nil {
-		req.Address = *patchedFields.Address
+		ord.Address = *patchedFields.Address
 	}
 	if patchedFields.ClientDescription != nil {
-		req.ClientDescription = *patchedFields.ClientDescription
+		ord.ClientDescription = *patchedFields.ClientDescription
 	}
 	if patchedFields.EmployeeDescription != nil {
-		req.EmployeeDescription = *patchedFields.EmployeeDescription
+		ord.EmployeeDescription = *patchedFields.EmployeeDescription
 	}
 	return nil
 }

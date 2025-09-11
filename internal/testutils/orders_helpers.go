@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seagumineko/spkuznetsov/internal/core/logic/auth"
-	"github.com/seagumineko/spkuznetsov/internal/core/logic/requests"
+	"github.com/Owouwun/spkuznetsov/internal/core/logic/auth"
+	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
 )
 
 const (
@@ -23,72 +23,72 @@ func GetNDaysLater(n int) time.Time {
 	return time.Now().Add(time.Duration(24*n) * time.Hour)
 }
 
-type requestOption func(*requests.Request)
+type OrderOption func(*orders.Order)
 
-func WithClientName(cn string) requestOption {
-	return func(r *requests.Request) {
+func WithClientName(cn string) OrderOption {
+	return func(r *orders.Order) {
 		r.ClientName = cn
 	}
 }
 
-func WithClientPhone(cp string) requestOption {
-	return func(r *requests.Request) {
+func WithClientPhone(cp string) OrderOption {
+	return func(r *orders.Order) {
 		r.ClientPhone = cp
 	}
 }
 
-func WithAddress(a string) requestOption {
-	return func(r *requests.Request) {
+func WithAddress(a string) OrderOption {
+	return func(r *orders.Order) {
 		r.Address = a
 	}
 }
 
-func WithClientDescription(cd string) requestOption {
-	return func(r *requests.Request) {
+func WithClientDescription(cd string) OrderOption {
+	return func(r *orders.Order) {
 		r.ClientDescription = cd
 	}
 }
 
-func WithEmployee(emp *auth.Employee) requestOption {
-	return func(r *requests.Request) {
+func WithEmployee(emp *auth.Employee) OrderOption {
+	return func(r *orders.Order) {
 		r.Employee = emp
 	}
 }
 
-func WithCancelReason(cr string) requestOption {
-	return func(r *requests.Request) {
+func WithCancelReason(cr string) OrderOption {
+	return func(r *orders.Order) {
 		r.CancelReason = &cr
 	}
 }
 
-func WithStatus(s requests.Status) requestOption {
-	return func(r *requests.Request) {
+func WithStatus(s orders.Status) OrderOption {
+	return func(r *orders.Order) {
 		r.Status = s
 	}
 }
 
-func WithEmployeeDescription(ed string) requestOption {
-	return func(r *requests.Request) {
+func WithEmployeeDescription(ed string) OrderOption {
+	return func(r *orders.Order) {
 		r.EmployeeDescription = ed
 	}
 }
 
-func WithScheduledFor(sf *time.Time) requestOption {
-	return func(r *requests.Request) {
+func WithScheduledFor(sf *time.Time) OrderOption {
+	return func(r *orders.Order) {
 		r.ScheduledFor = sf
 	}
 }
 
-// Create test request with default values
-func NewTestRequest(opts ...requestOption) *requests.Request {
-	req := &requests.Request{
+// Create test Order with default values
+func NewTestOrder(opts ...OrderOption) *orders.Order {
+	req := &orders.Order{
 		ClientName:        "Иван Иванов",
 		ClientPhone:       "+71112223344",
 		Address:           "ул. Примерная, д. 1",
 		ClientDescription: "Обычный клиент",
 		PublicLink:        "example.com/abracadabra",
 		Employee:          &auth.Employee{Name: "Петр Петров"},
-		Status:            requests.StatusScheduled,
+		Status:            orders.StatusScheduled,
 		ScheduledFor:      nil,
 	}
 
@@ -98,7 +98,7 @@ func NewTestRequest(opts ...requestOption) *requests.Request {
 	return req
 }
 
-func ValidateRequest(t *testing.T, expected, actual *requests.Request) {
+func ValidateOrder(t *testing.T, expected, actual *orders.Order) {
 	if expected == nil {
 		if actual == nil {
 			return

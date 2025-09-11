@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS employees (
 );
 INSERT INTO employees (name, created_at, updated_at) VALUES ('Петр Петров', NOW(), NOW());
 
-CREATE TABLE requests (
+CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
     client_name TEXT NOT NULL,
     client_phone TEXT NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE requests (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     deleted_at TIMESTAMP WITH TIME ZONE
 );
-INSERT INTO requests (
+INSERT INTO orders (
     client_name,
     client_phone,
     address,
@@ -51,6 +51,6 @@ INSERT INTO requests (
     NOW()
 );
 
-CREATE INDEX idx_requests_status ON requests(status);
-CREATE INDEX idx_requests_employee_id ON requests(employee_id);
-CREATE INDEX idx_requests_scheduled_for ON requests(scheduled_for);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_employee_id ON orders(employee_id);
+CREATE INDEX idx_orders_scheduled_for ON orders(scheduled_for);

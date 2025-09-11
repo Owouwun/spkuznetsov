@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Owouwun/spkuznetsov/internal/testutils"
+	"github.com/Owouwun/spkuznetsov/pkg/logger"
 	"github.com/docker/go-connections/nat"
 	"github.com/golang-migrate/migrate/v4"
 	migpostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	"github.com/seagumineko/spkuznetsov/internal/testutils"
-	"github.com/seagumineko/spkuznetsov/pkg/logger"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"gorm.io/driver/postgres"
@@ -137,52 +137,52 @@ func runTestMigrations(db *sql.DB) error {
 	return nil
 }
 
-func TestRequestRepository_CreateRequest(t *testing.T) {
+func TestOrderRepository_CreateOrder(t *testing.T) {
 	gormDB, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewRequestRepository(gormDB)
-	newRequest := testutils.NewTestRequest()
+	repo := NewOrderRepository(gormDB)
+	newOrder := testutils.NewTestOrder()
 
-	requestID, err := repo.CreateRequest(context.Background(), newRequest)
+	requestID, err := repo.CreateOrder(context.Background(), newOrder)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 
-	request, err := repo.GetRequest(context.Background(), requestID)
+	request, err := repo.GetOrder(context.Background(), requestID)
 	if err != nil {
 		t.Fatalf("Failed to get request: %v", err)
 	}
 
-	testutils.ValidateRequest(t, newRequest, request)
+	testutils.ValidateOrder(t, newOrder, request)
 }
 
-func TestRequestRepository_UpdateRequest(t *testing.T) {
+func TestOrderRepository_UpdateOrder(t *testing.T) {
 	gormDB, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewRequestRepository(gormDB)
+	repo := NewOrderRepository(gormDB)
 
-	createdRequest := testutils.NewTestRequest()
-	requestID, err := repo.CreateRequest(context.Background(), createdRequest)
+	createdOrder := testutils.NewTestOrder()
+	requestID, err := repo.CreateOrder(context.Background(), createdOrder)
 	if err != nil {
 		t.Fatalf("Failed to create request for update: %v", err)
 	}
 
-	updatedRequest := testutils.NewTestRequest(
+	updatedOrder := testutils.NewTestOrder(
 		testutils.WithAddress("Updated GORM Test Address"),
 	)
 
-	err = repo.UpdateRequest(context.Background(), requestID, updatedRequest)
+	err = repo.UpdateOrder(context.Background(), requestID, updatedOrder)
 	if err != nil {
 		t.Fatalf("Failed to update request: %v", err)
 	}
 
-	resultRequest, err := repo.GetRequest(context.Background(), requestID)
+	resultOrder, err := repo.GetOrder(context.Background(), requestID)
 	if err != nil {
 		t.Fatalf("Failed to get updated request: %v", err)
 	}
 
-	updatedRequest.ID = requestID
-	testutils.ValidateRequest(t, updatedRequest, resultRequest)
+	updatedOrder.ID = requestID
+	testutils.ValidateOrder(t, updatedOrder, resultOrder)
 }

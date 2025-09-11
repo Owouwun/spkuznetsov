@@ -55,7 +55,7 @@ const (
 	EmptyField   DetErrType = "field must be filled"
 	InvalidValue DetErrType = "invalid value"
 
-	RequestActionNotPermittedByStatus DetErrType = "action permitted by request status"
+	OrderActionNotPermittedByStatus DetErrType = "action permitted by order status"
 
 	QueryInsertFailed = "failed to insert"
 	QueryUpdateFailed = "failed to update"
