@@ -1,0 +1,175 @@
+package repository_postgres
+
+import (
+	"context"
+	"database/sql"
+	"embed"
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/seagumineko/spkuznetsov/internal/testutils"
+	"github.com/seagumineko/spkuznetsov/pkg/logger"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
+)
+
+const (
+	containerPort = "5432"
+)
+
+//go:embed migrations/*.sql
+var migrationFiles embed.FS
+
+func runPostgresContainer() (context.Context, testcontainers.Container, error) {
+	ctx := context.Background()
+	req := testcontainers.ContainerRequest{
+		Image:        "postgres:15-alpine",
+		ExposedPorts: []string{containerPort + "/tcp"},
+		Env: map[string]string{
+			"POSTGRES_DB":       "testdb",
+			"POSTGRES_USER":     "user",
+			"POSTGRES_PASSWORD": "password",
+		},
+		WaitingFor: wait.ForAll(
+			wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(30*time.Second),
+			wait.ForListeningPort(containerPort).WithStartupTimeout(30*time.Second),
+		),
+	}
+	postgresContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return ctx, postgresContainer, nil
+}
+
+func runTestMigrations(db *sql.DB) error {
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return err
+	}
+
+	d, err := iofs.New(migrationFiles, "migrations")
+	if err != nil {
+		return err
+	}
+
+	m, err := migrate.NewWithInstance("iofs", d, "postgres", driver)
+	if err != nil {
+		return err
+	}
+
+	err = m.Up()
+	if err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	return nil
+}
+
+func TestRequestRepository_CreateRequest(t *testing.T) {
+	ctx, postgresContainer, err := runPostgresContainer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logger.LogIfErr(t, "error while terminating container: %v",
+		postgresContainer.Terminate, ctx,
+	)
+
+	host, err := postgresContainer.Host(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := postgresContainer.MappedPort(ctx, containerPort)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dsn := fmt.Sprintf("host=%s port=%d user=user password=password dbname=testdb sslmode=disable", host, port.Int())
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logger.LogIfErr(t, "error while closing db: %v",
+		db.Close,
+	)
+
+	err = runTestMigrations(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repo := NewRequestRepository(db)
+	newRequest := testutils.NewTestRequest()
+
+	requestID, err := repo.CreateRequest(ctx, newRequest)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	request, err := repo.GetRequest(ctx, requestID)
+	if err != nil {
+		t.Fatalf("Failed to get request: %v", err)
+	}
+
+	testutils.ValidateRequest(t, newRequest, request)
+}
+
+func TestRequestRepository_UpdateRequest(t *testing.T) {
+	ctx, postgresContainer, err := runPostgresContainer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logger.LogIfErr(t, "error while terminating container: %v",
+		postgresContainer.Terminate, ctx,
+	)
+
+	host, err := postgresContainer.Host(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := postgresContainer.MappedPort(ctx, containerPort)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dsn := fmt.Sprintf("host=%s port=%d user=user password=password dbname=testdb sslmode=disable", host, port.Int())
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logger.LogIfErr(t, "error while closing db: %v",
+		db.Close,
+	)
+
+	err = runTestMigrations(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repo := NewRequestRepository(db)
+	newRequest := testutils.NewTestRequest(
+		testutils.WithAddress("New postgres test address"),
+	)
+	var requestID int64 = 1
+
+	err = repo.UpdateRequest(ctx, int64(requestID), newRequest)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	request, err := repo.GetRequest(ctx, requestID)
+	if err != nil {
+		t.Fatalf("Failed to get request: %v", err)
+	}
+
+	testutils.ValidateRequest(t, newRequest, request)
+}

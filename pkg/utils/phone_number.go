@@ -1,4 +1,4 @@
-package м
+package utils
 
 import (
 	"errors"
@@ -24,7 +24,7 @@ func StandartizePhoneNumber(phoneNumber string) (string, error) {
 	clearPhone := getPhoneWithoutDecorators(phoneNumber)
 
 	if !isContainsNumbersOnly(clearPhone) {
-		return "", errors.New("номер телефона содержит посторонние символы")
+		return "", errors.New("contains external symbols")
 	}
 
 	phoneLen := len(clearPhone)
@@ -38,5 +38,5 @@ func StandartizePhoneNumber(phoneNumber string) (string, error) {
 		return "+" + clearPhone, nil
 	}
 
-	return "", errors.New("номер телефона имеет некорректное количество цифр")
+	return "", errors.New("contains wrong symbol count")
 }
