@@ -7,8 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//go:generate mockery --name OrderService --filename=mock_order_service.go --structname MockOrderService
-
 // Задаёт методы бизнес-логики
 type OrderService interface {
 	CreateNewOrder(pord *orders.PrimaryOrder) (*orders.Order, error)
