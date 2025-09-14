@@ -94,7 +94,12 @@ func waitForDBReady(ctx context.Context, dbConn string) error {
 				done <- err
 				return
 			}
-			defer db.Close()
+			defer func() {
+				err := db.Close()
+				if err != nil {
+					log.Fatal(err)
+				}
+			}()
 
 			if err := db.Ping(); err == nil {
 				done <- nil
