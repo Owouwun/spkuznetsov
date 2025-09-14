@@ -1,4 +1,4 @@
-package repository_postgres
+package repository_orders_postgres
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	repository_orders "github.com/Owouwun/spkuznetsov/internal/core/repository/orders"
 	"github.com/Owouwun/spkuznetsov/internal/testutils"
 	"github.com/Owouwun/spkuznetsov/pkg/logger"
 	"github.com/docker/go-connections/nat"
@@ -141,7 +142,7 @@ func TestOrderRepository_CreateOrder(t *testing.T) {
 	gormDB, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewOrderRepository(gormDB)
+	repo := repository_orders.NewOrderRepository(gormDB)
 	newOrder := testutils.NewTestOrder()
 
 	ordID, err := repo.CreateOrder(context.Background(), newOrder)
@@ -149,7 +150,7 @@ func TestOrderRepository_CreateOrder(t *testing.T) {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 
-	request, err := repo.GetOrder(context.Background(), ordID)
+	request, err := repo.GetOrderByID(context.Background(), ordID)
 	if err != nil {
 		t.Fatalf("Failed to get request: %v", err)
 	}
@@ -161,7 +162,7 @@ func TestOrderRepository_UpdateOrder(t *testing.T) {
 	gormDB, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewOrderRepository(gormDB)
+	repo := repository_orders.NewOrderRepository(gormDB)
 
 	createdOrder := testutils.NewTestOrder()
 	ordID, err := repo.CreateOrder(context.Background(), createdOrder)
@@ -178,7 +179,7 @@ func TestOrderRepository_UpdateOrder(t *testing.T) {
 		t.Fatalf("Failed to update request: %v", err)
 	}
 
-	resultOrder, err := repo.GetOrder(context.Background(), ordID)
+	resultOrder, err := repo.GetOrderByID(context.Background(), ordID)
 	if err != nil {
 		t.Fatalf("Failed to get updated request: %v", err)
 	}

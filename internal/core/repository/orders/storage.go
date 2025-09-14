@@ -1,10 +1,9 @@
-package repository_postgres
+package repository_orders
 
 import (
 	"context"
 
 	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
-	"github.com/Owouwun/spkuznetsov/internal/core/repository"
 	"github.com/Owouwun/spkuznetsov/internal/core/repository/entities"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -14,7 +13,7 @@ type GormOrderRepository struct {
 	db *gorm.DB
 }
 
-func NewOrderRepository(db *gorm.DB) repository.OrderRepository {
+func NewOrderRepository(db *gorm.DB) orders.OrderRepository {
 	return &GormOrderRepository{db: db}
 }
 
@@ -58,7 +57,7 @@ func (r *GormOrderRepository) UpdateOrder(ctx context.Context, ord *orders.Order
 	return nil
 }
 
-func (r *GormOrderRepository) GetOrder(ctx context.Context, id uuid.UUID) (*orders.Order, error) {
+func (r *GormOrderRepository) GetOrderByID(ctx context.Context, id uuid.UUID) (*orders.Order, error) {
 	var orderEntity entities.OrderEntity
 	result := r.db.WithContext(ctx).
 		Preload("Employee").
