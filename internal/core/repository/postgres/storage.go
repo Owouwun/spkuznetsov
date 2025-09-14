@@ -5,7 +5,8 @@ import (
 
 	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
 	"github.com/Owouwun/spkuznetsov/internal/core/repository"
-	deterrs "github.com/Owouwun/spkuznetsov/internal/errors"
+	"github.com/Owouwun/spkuznetsov/internal/core/repository/entities"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -17,45 +18,54 @@ func NewOrderRepository(db *gorm.DB) repository.OrderRepository {
 	return &GormOrderRepository{db: db}
 }
 
-func (r *GormOrderRepository) CreateOrder(ctx context.Context, req *orders.Order) (uint, error) {
-	result := r.db.WithContext(ctx).Create(&req)
+func (r *GormOrderRepository) CreateOrder(ctx context.Context, ord *orders.Order) (uuid.UUID, error) {
+	orderEntity := entities.NewOrderEntityFromLogic(ord)
+
+	result := r.db.WithContext(ctx).Create(&orderEntity)
 	if result.Error != nil {
-		return 0, deterrs.NewDetErr(
-			deterrs.QueryInsertFailed,
-			deterrs.WithOriginalError(result.Error),
-		)
+		return uuid.Nil, result.Error
 	}
-	return req.ID, nil
+
+	return orderEntity.ID, nil
 }
 
-func (r *GormOrderRepository) UpdateOrder(ctx context.Context, id uint, req *orders.Order) error {
-	req.ID = id
-	result := r.db.WithContext(ctx).Save(&req)
+func (r *GormOrderRepository) UpdateOrder(ctx context.Context, ord *orders.Order) error {
+	orderEntity := entities.NewOrderEntityFromLogic(ord)
+
+	result := r.db.WithContext(ctx).
+		Model(&orderEntity).
+		Where("id = ?", ord.ID).
+		Select(
+			"ClientName",
+			"ClientPhone",
+			"Address",
+			"ClientDescription",
+			"EmployeeID",
+			"CancelReason",
+			"Status",
+			"EmployeeDescription",
+			"ScheduledFor",
+		).
+		Updates(orderEntity)
 	if result.Error != nil {
-		return deterrs.NewDetErr(
-			deterrs.QueryUpdateFailed,
-			deterrs.WithOriginalError(result.Error),
-		)
+		return result.Error
 	}
 
 	if result.RowsAffected == 0 {
-		return deterrs.NewDetErr(deterrs.QuerySelectFailed)
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil
 }
 
-func (r *GormOrderRepository) GetOrder(ctx context.Context, id uint) (*orders.Order, error) {
-	var req orders.Order
-	result := r.db.WithContext(ctx).Preload("Employee").First(&req, id)
+func (r *GormOrderRepository) GetOrder(ctx context.Context, id uuid.UUID) (*orders.Order, error) {
+	var orderEntity entities.OrderEntity
+	result := r.db.WithContext(ctx).
+		Preload("Employee").
+		First(&orderEntity, "id = ?", id)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return nil, deterrs.NewDetErr(deterrs.QuerySelectFailed)
-		}
-		return nil, deterrs.NewDetErr(
-			deterrs.QuerySelectFailed,
-			deterrs.WithOriginalError(result.Error),
-		)
+		return nil, result.Error
 	}
-	return &req, nil
+
+	return orderEntity.ToLogicOrder(), nil
 }

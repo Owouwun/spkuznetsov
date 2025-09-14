@@ -77,11 +77,11 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 
 	err = runTestMigrations(sqlDB)
 	if err != nil {
+		t.Fatal(err)
 		err = sqlDB.Close()
 		if err != nil {
 			t.Log(err)
 		}
-		t.Fatal(err)
 	}
 
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
@@ -93,11 +93,11 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 		},
 	})
 	if err != nil {
+		t.Fatal(err)
 		err = sqlDB.Close()
 		if err != nil {
 			t.Log(err)
 		}
-		t.Fatal(err)
 	}
 
 	cleanup := func() {
@@ -144,12 +144,12 @@ func TestOrderRepository_CreateOrder(t *testing.T) {
 	repo := NewOrderRepository(gormDB)
 	newOrder := testutils.NewTestOrder()
 
-	requestID, err := repo.CreateOrder(context.Background(), newOrder)
+	ordID, err := repo.CreateOrder(context.Background(), newOrder)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 
-	request, err := repo.GetOrder(context.Background(), requestID)
+	request, err := repo.GetOrder(context.Background(), ordID)
 	if err != nil {
 		t.Fatalf("Failed to get request: %v", err)
 	}
@@ -164,25 +164,24 @@ func TestOrderRepository_UpdateOrder(t *testing.T) {
 	repo := NewOrderRepository(gormDB)
 
 	createdOrder := testutils.NewTestOrder()
-	requestID, err := repo.CreateOrder(context.Background(), createdOrder)
+	ordID, err := repo.CreateOrder(context.Background(), createdOrder)
 	if err != nil {
 		t.Fatalf("Failed to create request for update: %v", err)
 	}
 
-	updatedOrder := testutils.NewTestOrder(
-		testutils.WithAddress("Updated GORM Test Address"),
-	)
+	updatedOrder := createdOrder
+	updatedOrder.ID = ordID
+	updatedOrder.Address = "Updated GORM Test Address"
 
-	err = repo.UpdateOrder(context.Background(), requestID, updatedOrder)
+	err = repo.UpdateOrder(context.Background(), updatedOrder)
 	if err != nil {
 		t.Fatalf("Failed to update request: %v", err)
 	}
 
-	resultOrder, err := repo.GetOrder(context.Background(), requestID)
+	resultOrder, err := repo.GetOrder(context.Background(), ordID)
 	if err != nil {
 		t.Fatalf("Failed to get updated request: %v", err)
 	}
 
-	updatedOrder.ID = requestID
 	testutils.ValidateOrder(t, updatedOrder, resultOrder)
 }

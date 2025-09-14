@@ -1,9 +1,6 @@
 package auth
 
-import "gorm.io/gorm"
-
 type Employee struct {
+	ID   uint   `json:"id"`
 	Name string `json:"name"`
-	// Gorm
-	gorm.Model
 }

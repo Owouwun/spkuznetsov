@@ -57,7 +57,7 @@ func WithEmployee(emp *auth.Employee) OrderOption {
 
 func WithCancelReason(cr string) OrderOption {
 	return func(r *orders.Order) {
-		r.CancelReason = &cr
+		r.CancelReason = cr
 	}
 }
 
@@ -86,8 +86,7 @@ func NewTestOrder(opts ...OrderOption) *orders.Order {
 		ClientPhone:       "+71112223344",
 		Address:           "ул. Примерная, д. 1",
 		ClientDescription: "Обычный клиент",
-		PublicLink:        "example.com/abracadabra",
-		Employee:          &auth.Employee{Name: "Петр Петров"},
+		Employee:          &auth.Employee{ID: 1, Name: "Петр Петров"},
 		Status:            orders.StatusScheduled,
 		ScheduledFor:      nil,
 	}
@@ -137,5 +136,5 @@ func ValidateOrder(t *testing.T, expected, actual *orders.Order) {
 		t.Errorf("Got nil value, while expected non-nil")
 		return
 	}
-	compare("EmployeeID", expected.Employee.ID, actual.Employee.ID)
+	compare("EmployeeName", expected.Employee.Name, actual.Employee.Name)
 }

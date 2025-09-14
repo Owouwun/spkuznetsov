@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/Owouwun/spkuznetsov/internal/core/logic/auth"
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type Status int8
@@ -51,22 +51,18 @@ type PrimaryOrder struct {
 
 type Order struct {
 	// Immutable
-	ClientName        string         `json:"client_name"`
-	ClientPhone       string         `json:"client_phone"`
-	Address           string         `json:"address"`
-	ClientDescription string         `json:"client_description"`
-	PublicLink        string         `json:"public_link"`
-	Employee          *auth.Employee `gorm:"foreignKey:EmployeeID"`
-	CancelReason      *string        `json:"cancel_reason,omitempty"`
+	ID                uuid.UUID `json:"id"`
+	ClientName        string    `json:"client_name"`
+	ClientPhone       string    `json:"client_phone"`
+	Address           string    `json:"address"`
+	ClientDescription string    `json:"client_description"`
+	Employee          *auth.Employee
+	CancelReason      string `json:"cancel_reason"`
 
 	// Mutable
 	Status              Status     `json:"status"`
 	EmployeeDescription string     `json:"employee_description"`
 	ScheduledFor        *time.Time `json:"scheduled_for"`
-
-	// Gorm
-	gorm.Model
-	EmployeeID *uint64 `json:"employee_id,omitempty"`
 }
 
 type OrderPatcher struct {

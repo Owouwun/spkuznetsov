@@ -1,54 +1,43 @@
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 CREATE TABLE IF NOT EXISTS employees (
     id BIGSERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    deleted_at TIMESTAMP WITH TIME ZONE
+    name TEXT NOT NULL
 );
-INSERT INTO employees (name, created_at, updated_at) VALUES ('Петр Петров', NOW(), NOW());
+INSERT INTO employees (name) VALUES ('Петр Петров');
 
 CREATE TABLE orders (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     client_name TEXT NOT NULL,
     client_phone TEXT NOT NULL,
     address TEXT NOT NULL,
     client_description TEXT,
-    public_link TEXT,
     employee_id BIGINT REFERENCES employees(id) ON DELETE SET NULL,
     cancel_reason TEXT,
     status INTEGER NOT NULL,
     employee_description TEXT,
-    scheduled_for TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    deleted_at TIMESTAMP WITH TIME ZONE
+    scheduled_for TIMESTAMP WITH TIME ZONE
 );
 INSERT INTO orders (
     client_name,
     client_phone,
     address,
     client_description,
-    public_link,
     employee_id,
     cancel_reason,
     status,
     employee_description,
-    scheduled_for,
-    created_at,
-    updated_at
+    scheduled_for
 ) VALUES (
-    'Иван Иванов',
-    '+71112223344',
+    'Тесть Тестя',
+    '+71234567890',
     'ул. Тестовая, д. 1',
     'Что-то сломалось',
-    'abracadabra',
     1,
     NULL,
     1,
     NULL,
-    NULL,
-    NOW(),
-    NOW()
+    NULL
 );
 
 CREATE INDEX idx_orders_status ON orders(status);
