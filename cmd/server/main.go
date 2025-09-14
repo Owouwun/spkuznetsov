@@ -11,6 +11,10 @@ import (
 	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
 	repository_orders "github.com/Owouwun/spkuznetsov/internal/core/repository/orders"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres" // Postgres migration
+	_ "github.com/golang-migrate/migrate/v4/source/file"       // Migrations from file
+	_ "github.com/lib/pq"                                      // Register Postgres driver
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -31,6 +35,8 @@ func main() {
 	if err := waitForDBReady(ctx, dbConn); err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
+
+	runMigrations(dbConn)
 
 	log.Println("Connecting to the PostgreSQL database...")
 	db, err := gorm.Open(postgres.Open(dbConn), &gorm.Config{})
@@ -56,6 +62,24 @@ func main() {
 	if err := router.Run(":8080"); err != nil {
 		log.Fatal("Server failed to start:", err)
 	}
+}
+
+func runMigrations(dbConn string) {
+	log.Println("Running database migrations...")
+
+	m, err := migrate.New(
+		"file://migrations", // Путь к папке с миграциями
+		dbConn,
+	)
+	if err != nil {
+		log.Fatalf("Failed to create migrate instance: %v", err)
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	log.Println("Database migrations applied successfully!")
 }
 
 func waitForDBReady(ctx context.Context, dbConn string) error {
