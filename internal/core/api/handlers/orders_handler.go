@@ -1,15 +1,18 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // Задаёт методы бизнес-логики
 type OrderService interface {
-	CreateNewOrder(pord *orders.PrimaryOrder) (*orders.Order, error)
+	CreateOrder(ctx context.Context, pord *orders.PrimaryOrder) (uuid.UUID, error)
+	GetOrder(ctx context.Context, id uuid.UUID) (*orders.Order, error)
 }
 
 // Содержит логику обработчиков для заявок
@@ -23,11 +26,6 @@ func NewOrderHandler(os OrderService) *OrderHandler {
 	return &OrderHandler{
 		orderService: os,
 	}
-}
-
-type CreateNewOrderResponseBody struct {
-	Order *orders.Order
-	Err   error
 }
 
 // CreateNewOrder обрабатывает HTTP POST-запрос на создание нового заказа.
@@ -49,13 +47,29 @@ func (h *OrderHandler) CreateNewOrder(c *gin.Context) {
 	}
 
 	// Вызываем сервис бизнес-логики для создания заказа.
-	newOrder, err := h.orderService.CreateNewOrder(&primaryOrder)
+	newOrder, err := h.orderService.CreateOrder(c, &primaryOrder)
 	if err != nil {
 		// TODO: Check on various errors
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create new order"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create new order", "details": err.Error()})
 		return
 	}
 
 	// Отправляем успешный ответ с созданным заказом и статусом 201 Created.
-	c.JSON(http.StatusCreated, &CreateNewOrderResponseBody{newOrder, nil})
+	c.JSON(http.StatusCreated, newOrder)
+}
+
+func (h *OrderHandler) GetOrder(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})
+		return
+	}
+
+	order, err := h.orderService.GetOrder(c, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create new order", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, order)
 }
