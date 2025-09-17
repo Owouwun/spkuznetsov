@@ -14,6 +14,7 @@ type OrderRepository interface {
 	Update(ctx context.Context, order *Order) error
 	Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
 	Assign(ctx context.Context, id uuid.UUID, empID uint) error
+	Schedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
 }
 
 type OrderService struct {
@@ -48,10 +49,14 @@ func (s *OrderService) GetAll(ctx context.Context) ([]*Order, error) {
 	return s.repo.GetAll(ctx)
 }
 
-func (s *OrderService) Preschedule(ctx context.Context, id uuid.UUID, ScheduledFor *time.Time) error {
-	return s.repo.Preschedule(ctx, id, ScheduledFor)
+func (s *OrderService) Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error {
+	return s.repo.Preschedule(ctx, id, scheduledFor)
 }
 
 func (s *OrderService) Assign(ctx context.Context, id uuid.UUID, empID uint) error {
 	return s.repo.Assign(ctx, id, empID)
+}
+
+func (s *OrderService) Schedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error {
+	return s.repo.Schedule(ctx, id, scheduledFor)
 }

@@ -159,3 +159,30 @@ func (r *GormOrderRepository) Assign(ctx context.Context, id uuid.UUID, empID ui
 
 	return result.Error
 }
+
+func (r *GormOrderRepository) Schedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error {
+	orderEntity, err := r.getEntityByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	order := orderEntity.ToLogicOrder()
+
+	if scheduledFor == nil {
+		err = order.ConfirmSchedule()
+	} else {
+		err = order.Schedule(scheduledFor)
+	}
+	if err != nil {
+		return err
+	}
+
+	orderEntity = entities.NewOrderEntityFromLogic(order)
+
+	result := r.db.WithContext(ctx).
+		Model(&orderEntity).
+		Where("id = ?", id).
+		Updates(orderEntity)
+
+	return result.Error
+}

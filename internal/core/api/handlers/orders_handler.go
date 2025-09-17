@@ -18,6 +18,7 @@ type OrderService interface {
 	GetAll(ctx context.Context) ([]*orders.Order, error)
 	Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
 	Assign(ctx context.Context, id uuid.UUID, empID uint) error
+	Schedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
 }
 
 // Содержит логику обработчиков для заявок
@@ -128,6 +129,27 @@ func (h *OrderHandler) Assign(c *gin.Context) {
 	}
 
 	if err := h.orderService.Assign(c, ordID, uint(empID)); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
+}
+
+func (h *OrderHandler) Schedule(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})
+		return
+	}
+
+	var req PrescheduleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
+		return
+	}
+
+	if err := h.orderService.Schedule(c, id, req.ScheduledFor); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
