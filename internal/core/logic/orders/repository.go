@@ -8,10 +8,10 @@ import (
 )
 
 type OrderRepository interface {
-	GetOrders(ctx context.Context) ([]*Order, error)
-	GetOrderByID(ctx context.Context, id uuid.UUID) (*Order, error)
-	CreateOrder(ctx context.Context, order *Order) (uuid.UUID, error)
-	UpdateOrder(ctx context.Context, order *Order) error
+	GetAll(ctx context.Context) ([]*Order, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*Order, error)
+	Create(ctx context.Context, order *Order) (uuid.UUID, error)
+	Update(ctx context.Context, order *Order) error
 	Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
 }
 
@@ -25,13 +25,13 @@ func NewOrderService(repo OrderRepository) *OrderService {
 	}
 }
 
-func (s *OrderService) CreateOrder(ctx context.Context, pord *PrimaryOrder) (uuid.UUID, error) {
+func (s *OrderService) Create(ctx context.Context, pord *PrimaryOrder) (uuid.UUID, error) {
 	order, err := pord.CreateNewOrder()
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	id, err := s.repo.CreateOrder(ctx, order)
+	id, err := s.repo.Create(ctx, order)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -39,12 +39,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, pord *PrimaryOrder) (uui
 	return id, nil
 }
 
-func (s *OrderService) GetOrder(ctx context.Context, id uuid.UUID) (*Order, error) {
-	return s.repo.GetOrderByID(ctx, id)
+func (s *OrderService) GetByID(ctx context.Context, id uuid.UUID) (*Order, error) {
+	return s.repo.GetByID(ctx, id)
 }
 
-func (s *OrderService) GetOrders(ctx context.Context) ([]*Order, error) {
-	return s.repo.GetOrders(ctx)
+func (s *OrderService) GetAll(ctx context.Context) ([]*Order, error) {
+	return s.repo.GetAll(ctx)
 }
 
 func (s *OrderService) Preschedule(ctx context.Context, id uuid.UUID, ScheduledFor *time.Time) error {

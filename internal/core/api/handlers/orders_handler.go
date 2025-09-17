@@ -12,9 +12,9 @@ import (
 
 // Задаёт методы бизнес-логики
 type OrderService interface {
-	CreateOrder(ctx context.Context, pord *orders.PrimaryOrder) (uuid.UUID, error)
-	GetOrder(ctx context.Context, id uuid.UUID) (*orders.Order, error)
-	GetOrders(ctx context.Context) ([]*orders.Order, error)
+	Create(ctx context.Context, pord *orders.PrimaryOrder) (uuid.UUID, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*orders.Order, error)
+	GetAll(ctx context.Context) ([]*orders.Order, error)
 	Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
 }
 
@@ -35,8 +35,8 @@ type PrescheduleRequest struct {
 	ScheduledFor *time.Time `json:"scheduled_for"`
 }
 
-func (h *OrderHandler) GetOrders(c *gin.Context) {
-	orders, err := h.orderService.GetOrders(c)
+func (h *OrderHandler) GetAll(c *gin.Context) {
+	orders, err := h.orderService.GetAll(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get orders", "details": err.Error()})
 		return
@@ -45,14 +45,14 @@ func (h *OrderHandler) GetOrders(c *gin.Context) {
 	c.JSON(http.StatusOK, orders)
 }
 
-func (h *OrderHandler) GetOrder(c *gin.Context) {
+func (h *OrderHandler) GetByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})
 		return
 	}
 
-	order, err := h.orderService.GetOrder(c, id)
+	order, err := h.orderService.GetByID(c, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get order", "details": err.Error()})
 		return
@@ -70,7 +70,7 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 // @Success 201 {object} orders.Order
 // @Failure 400 {object} gin.H "Неверные данные запроса"
 // @Router /orders [post]
-func (h *OrderHandler) CreateNewOrder(c *gin.Context) {
+func (h *OrderHandler) Create(c *gin.Context) {
 	var primaryOrder orders.PrimaryOrder
 
 	// Десериализуем JSON-тело запроса в структуру primaryOrder.
@@ -80,7 +80,7 @@ func (h *OrderHandler) CreateNewOrder(c *gin.Context) {
 	}
 
 	// Вызываем сервис бизнес-логики для создания заказа.
-	newOrder, err := h.orderService.CreateOrder(c, &primaryOrder)
+	newOrder, err := h.orderService.Create(c, &primaryOrder)
 	if err != nil {
 		// TODO: Check on various errors
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create new order", "details": err.Error()})
@@ -91,7 +91,7 @@ func (h *OrderHandler) CreateNewOrder(c *gin.Context) {
 	c.JSON(http.StatusCreated, newOrder)
 }
 
-func (h *OrderHandler) PrescheduleOrder(c *gin.Context) {
+func (h *OrderHandler) Preschedule(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})

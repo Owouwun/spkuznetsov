@@ -18,7 +18,7 @@ func NewOrderRepository(db *gorm.DB) orders.OrderRepository {
 	return &GormOrderRepository{db: db}
 }
 
-func (r *GormOrderRepository) getOrderEntityById(ctx context.Context, id uuid.UUID) (*entities.OrderEntity, error) {
+func (r *GormOrderRepository) getEntityById(ctx context.Context, id uuid.UUID) (*entities.OrderEntity, error) {
 	var orderEntity *entities.OrderEntity
 	result := r.db.WithContext(ctx).
 		Preload("Employee").
@@ -30,7 +30,7 @@ func (r *GormOrderRepository) getOrderEntityById(ctx context.Context, id uuid.UU
 	return orderEntity, nil
 }
 
-func (r *GormOrderRepository) CreateOrder(ctx context.Context, ord *orders.Order) (uuid.UUID, error) {
+func (r *GormOrderRepository) Create(ctx context.Context, ord *orders.Order) (uuid.UUID, error) {
 	orderEntity := entities.NewOrderEntityFromLogic(ord)
 
 	result := r.db.WithContext(ctx).Create(&orderEntity)
@@ -41,7 +41,7 @@ func (r *GormOrderRepository) CreateOrder(ctx context.Context, ord *orders.Order
 	return orderEntity.ID, nil
 }
 
-func (r *GormOrderRepository) UpdateOrder(ctx context.Context, ord *orders.Order) error {
+func (r *GormOrderRepository) Update(ctx context.Context, ord *orders.Order) error {
 	orderEntity := entities.NewOrderEntityFromLogic(ord)
 
 	result := r.db.WithContext(ctx).
@@ -70,8 +70,8 @@ func (r *GormOrderRepository) UpdateOrder(ctx context.Context, ord *orders.Order
 	return nil
 }
 
-func (r *GormOrderRepository) GetOrderByID(ctx context.Context, id uuid.UUID) (*orders.Order, error) {
-	orderEntity, err := r.getOrderEntityById(ctx, id)
+func (r *GormOrderRepository) GetByID(ctx context.Context, id uuid.UUID) (*orders.Order, error) {
+	orderEntity, err := r.getEntityById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (r *GormOrderRepository) GetOrderByID(ctx context.Context, id uuid.UUID) (*
 	return orderEntity.ToLogicOrder(), nil
 }
 
-func (r *GormOrderRepository) GetOrders(ctx context.Context) ([]*orders.Order, error) {
+func (r *GormOrderRepository) GetAll(ctx context.Context) ([]*orders.Order, error) {
 	var orderEntities []entities.OrderEntity
 	result := r.db.WithContext(ctx).
 		Preload("Employee").
@@ -98,7 +98,7 @@ func (r *GormOrderRepository) GetOrders(ctx context.Context) ([]*orders.Order, e
 }
 
 func (r *GormOrderRepository) Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error {
-	orderEntity, err := r.getOrderEntityById(ctx, id)
+	orderEntity, err := r.getEntityById(ctx, id)
 	if err != nil {
 		return err
 	}

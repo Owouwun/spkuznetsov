@@ -145,12 +145,12 @@ func TestOrderRepository_CreateOrder(t *testing.T) {
 	repo := repository_orders.NewOrderRepository(gormDB)
 	newOrder := testutils.NewTestOrder()
 
-	ordID, err := repo.CreateOrder(context.Background(), newOrder)
+	ordID, err := repo.Create(context.Background(), newOrder)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 
-	request, err := repo.GetOrderByID(context.Background(), ordID)
+	request, err := repo.GetByID(context.Background(), ordID)
 	if err != nil {
 		t.Fatalf("Failed to get request: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestOrderRepository_UpdateOrder(t *testing.T) {
 	repo := repository_orders.NewOrderRepository(gormDB)
 
 	createdOrder := testutils.NewTestOrder()
-	ordID, err := repo.CreateOrder(context.Background(), createdOrder)
+	ordID, err := repo.Create(context.Background(), createdOrder)
 	if err != nil {
 		t.Fatalf("Failed to create request for update: %v", err)
 	}
@@ -174,12 +174,12 @@ func TestOrderRepository_UpdateOrder(t *testing.T) {
 	updatedOrder.ID = ordID
 	updatedOrder.Address = "Updated GORM Test Address"
 
-	err = repo.UpdateOrder(context.Background(), updatedOrder)
+	err = repo.Update(context.Background(), updatedOrder)
 	if err != nil {
 		t.Fatalf("Failed to update request: %v", err)
 	}
 
-	resultOrder, err := repo.GetOrderByID(context.Background(), ordID)
+	resultOrder, err := repo.GetByID(context.Background(), ordID)
 	if err != nil {
 		t.Fatalf("Failed to get updated request: %v", err)
 	}

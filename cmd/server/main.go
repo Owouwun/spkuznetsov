@@ -52,12 +52,12 @@ func main() {
 
 	router := gin.Default()
 
-	apiGroup := router.Group("/api/v1")
+	apiOrders := router.Group("/api/v1/orders")
 	{
-		apiGroup.GET("/orders", orderHandler.GetOrders)
-		apiGroup.GET("/orders/:id", orderHandler.GetOrder)
-		apiGroup.POST("/orders", orderHandler.CreateNewOrder)
-		apiGroup.POST("/orders/:id/preschedule", orderHandler.PrescheduleOrder)
+		apiOrders.GET("/", orderHandler.GetAll)
+		apiOrders.GET("/:id", orderHandler.GetByID)
+		apiOrders.POST("", orderHandler.Create)
+		apiOrders.POST("/:id/preschedule", orderHandler.Preschedule)
 	}
 
 	log.Println("Starting server on :8080")
