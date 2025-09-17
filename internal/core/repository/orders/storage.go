@@ -68,3 +68,21 @@ func (r *GormOrderRepository) GetOrderByID(ctx context.Context, id uuid.UUID) (*
 
 	return orderEntity.ToLogicOrder(), nil
 }
+
+func (r *GormOrderRepository) GetOrders(ctx context.Context) ([]*orders.Order, error) {
+	var orderEntities []entities.OrderEntity
+	result := r.db.WithContext(ctx).
+		Preload("Employee").
+		Find(&orderEntities)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	var logicOrders []*orders.Order
+	for _, entity := range orderEntities {
+		logicOrders = append(logicOrders, entity.ToLogicOrder())
+	}
+
+	return logicOrders, nil
+}

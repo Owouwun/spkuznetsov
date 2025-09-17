@@ -10,6 +10,7 @@ type OrderRepository interface {
 	CreateOrder(ctx context.Context, order *Order) (uuid.UUID, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (*Order, error)
 	UpdateOrder(ctx context.Context, order *Order) error
+	GetOrders(ctx context.Context) ([]*Order, error)
 }
 
 type OrderService struct {
@@ -38,4 +39,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, pord *PrimaryOrder) (uui
 
 func (s *OrderService) GetOrder(ctx context.Context, id uuid.UUID) (*Order, error) {
 	return s.repo.GetOrderByID(ctx, id)
+}
+
+func (s *OrderService) GetOrders(ctx context.Context) ([]*Order, error) {
+	return s.repo.GetOrders(ctx)
 }

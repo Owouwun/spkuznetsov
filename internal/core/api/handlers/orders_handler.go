@@ -13,6 +13,7 @@ import (
 type OrderService interface {
 	CreateOrder(ctx context.Context, pord *orders.PrimaryOrder) (uuid.UUID, error)
 	GetOrder(ctx context.Context, id uuid.UUID) (*orders.Order, error)
+	GetOrders(ctx context.Context) ([]*orders.Order, error)
 }
 
 // Содержит логику обработчиков для заявок
@@ -67,9 +68,19 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 
 	order, err := h.orderService.GetOrder(c, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create new order", "details": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get order", "details": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, order)
+}
+
+func (h *OrderHandler) GetOrders(c *gin.Context) {
+	orders, err := h.orderService.GetOrders(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get orders", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
 }

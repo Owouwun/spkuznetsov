@@ -56,6 +56,7 @@ func main() {
 	{
 		apiGroup.POST("/orders", orderHandler.CreateNewOrder)
 		apiGroup.GET("/orders/:id", orderHandler.GetOrder)
+		apiGroup.GET("/orders", orderHandler.GetOrders)
 	}
 
 	log.Println("Starting server on :8080")
