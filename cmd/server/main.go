@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/Owouwun/spkuznetsov/internal/core/api/handlers"
+	"github.com/Owouwun/spkuznetsov/internal/core/logic/auth"
 	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
-	repository_orders "github.com/Owouwun/spkuznetsov/internal/core/repository/orders"
+	repository_auth "github.com/Owouwun/spkuznetsov/internal/core/repository/services/auth"
+	repository_orders "github.com/Owouwun/spkuznetsov/internal/core/repository/services/orders"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres" // Postgres migration
@@ -45,10 +47,12 @@ func main() {
 	}
 
 	orderRepo := repository_orders.NewOrderRepository(db)
-
 	orderService := orders.NewOrderService(orderRepo)
-
 	orderHandler := handlers.NewOrderHandler(orderService)
+
+	authRepo := repository_auth.NewOrderRepository(db)
+	authService := auth.NewAuthService(authRepo)
+	authHandler := handlers.NewAuthHandler(authService)
 
 	router := gin.Default()
 
@@ -57,7 +61,15 @@ func main() {
 		apiOrders.GET("/", orderHandler.GetAll)
 		apiOrders.GET("/:id", orderHandler.GetByID)
 		apiOrders.POST("", orderHandler.Create)
-		apiOrders.POST("/:id/preschedule", orderHandler.Preschedule)
+		apiOrders.POST("/preschedule/:id", orderHandler.Preschedule)
+		apiOrders.POST("/assign/:ordID/:empID", orderHandler.Assign)
+	}
+
+	apiEmployees := router.Group("/api/v1/employees")
+	{
+		apiEmployees.GET("/", authHandler.GetEmployees)
+		apiEmployees.GET("/:id", authHandler.GetEmployeeByID)
+		apiEmployees.POST("", authHandler.Create)
 	}
 
 	log.Println("Starting server on :8080")

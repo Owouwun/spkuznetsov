@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	repository_orders "github.com/Owouwun/spkuznetsov/internal/core/repository/orders"
+	repository_orders "github.com/Owouwun/spkuznetsov/internal/core/repository/services/orders"
 	"github.com/Owouwun/spkuznetsov/internal/testutils"
 	"github.com/Owouwun/spkuznetsov/pkg/logger"
 	"github.com/docker/go-connections/nat"

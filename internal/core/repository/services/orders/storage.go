@@ -18,7 +18,7 @@ func NewOrderRepository(db *gorm.DB) orders.OrderRepository {
 	return &GormOrderRepository{db: db}
 }
 
-func (r *GormOrderRepository) getEntityById(ctx context.Context, id uuid.UUID) (*entities.OrderEntity, error) {
+func (r *GormOrderRepository) getEntityByID(ctx context.Context, id uuid.UUID) (*entities.OrderEntity, error) {
 	var orderEntity *entities.OrderEntity
 	result := r.db.WithContext(ctx).
 		Preload("Employee").
@@ -28,6 +28,17 @@ func (r *GormOrderRepository) getEntityById(ctx context.Context, id uuid.UUID) (
 	}
 
 	return orderEntity, nil
+}
+
+func (r *GormOrderRepository) getEmployeeEntityByID(ctx context.Context, id uint) (*entities.EmployeeEntity, error) {
+	var empEntity *entities.EmployeeEntity
+	result := r.db.WithContext(ctx).
+		First(&empEntity, "id = ?", id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return empEntity, nil
 }
 
 func (r *GormOrderRepository) Create(ctx context.Context, ord *orders.Order) (uuid.UUID, error) {
@@ -71,7 +82,7 @@ func (r *GormOrderRepository) Update(ctx context.Context, ord *orders.Order) err
 }
 
 func (r *GormOrderRepository) GetByID(ctx context.Context, id uuid.UUID) (*orders.Order, error) {
-	orderEntity, err := r.getEntityById(ctx, id)
+	orderEntity, err := r.getEntityByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +109,7 @@ func (r *GormOrderRepository) GetAll(ctx context.Context) ([]*orders.Order, erro
 }
 
 func (r *GormOrderRepository) Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error {
-	orderEntity, err := r.getEntityById(ctx, id)
+	orderEntity, err := r.getEntityByID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -118,6 +129,38 @@ func (r *GormOrderRepository) Preschedule(ctx context.Context, id uuid.UUID, sch
 		Updates(map[string]interface{}{
 			"Status":       orderEntity.Status,
 			"ScheduledFor": scheduledFor,
+		})
+
+	return result.Error
+}
+
+func (r *GormOrderRepository) Assign(ctx context.Context, id uuid.UUID, empID uint) error {
+	orderEntity, err := r.getEntityByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	empEntity, err := r.getEmployeeEntityByID(ctx, empID)
+	if err != nil {
+		return err
+	}
+
+	order := orderEntity.ToLogicOrder()
+	emp := empEntity.ToLogicEmployee()
+
+	err = order.Assign(emp)
+	if err != nil {
+		return err
+	}
+
+	orderEntity = entities.NewOrderEntityFromLogic(order)
+
+	result := r.db.WithContext(ctx).
+		Model(&orderEntity).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"Status":     orderEntity.Status,
+			"EmployeeID": orderEntity.Employee.ID,
 		})
 
 	return result.Error

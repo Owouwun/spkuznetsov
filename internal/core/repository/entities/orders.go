@@ -3,7 +3,6 @@ package entities
 import (
 	"time"
 
-	"github.com/Owouwun/spkuznetsov/internal/core/logic/auth"
 	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
 	"github.com/google/uuid"
 )
@@ -22,16 +21,8 @@ type OrderEntity struct {
 	Employee            *EmployeeEntity `gorm:"foreignKey:EmployeeID;references:ID"`
 }
 
-type EmployeeEntity struct {
-	ID   uint   `gorm:"primaryKey"`
-	Name string `gorm:"not null"`
-}
-
 func (OrderEntity) TableName() string {
 	return "public.orders"
-}
-func (EmployeeEntity) TableName() string {
-	return "public.employees"
 }
 
 func NewOrderEntityFromLogic(ord *orders.Order) *OrderEntity {
@@ -71,15 +62,5 @@ func (oe *OrderEntity) ToLogicOrder() *orders.Order {
 		Status:              orders.Status(oe.Status),
 		EmployeeDescription: oe.EmployeeDescription,
 		ScheduledFor:        oe.ScheduledFor,
-	}
-}
-
-func (ee *EmployeeEntity) ToLogicEmployee() *auth.Employee {
-	if ee == nil {
-		return nil
-	}
-	return &auth.Employee{
-		ID:   ee.ID,
-		Name: ee.Name,
 	}
 }

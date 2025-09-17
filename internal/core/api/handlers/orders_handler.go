@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
@@ -16,6 +17,7 @@ type OrderService interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*orders.Order, error)
 	GetAll(ctx context.Context) ([]*orders.Order, error)
 	Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
+	Assign(ctx context.Context, id uuid.UUID, empID uint) error
 }
 
 // Содержит логику обработчиков для заявок
@@ -80,15 +82,15 @@ func (h *OrderHandler) Create(c *gin.Context) {
 	}
 
 	// Вызываем сервис бизнес-логики для создания заказа.
-	newOrder, err := h.orderService.Create(c, &primaryOrder)
+	newOrderID, err := h.orderService.Create(c, &primaryOrder)
 	if err != nil {
 		// TODO: Check on various errors
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create new order", "details": err.Error()})
 		return
 	}
 
-	// Отправляем успешный ответ с созданным заказом и статусом 201 Created.
-	c.JSON(http.StatusCreated, newOrder)
+	// Отправляем успешный ответ с ID созданного заказа и статусом 201 Created.
+	c.JSON(http.StatusCreated, newOrderID)
 }
 
 func (h *OrderHandler) Preschedule(c *gin.Context) {
@@ -105,6 +107,27 @@ func (h *OrderHandler) Preschedule(c *gin.Context) {
 	}
 
 	if err := h.orderService.Preschedule(c, id, req.ScheduledFor); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
+}
+
+func (h *OrderHandler) Assign(c *gin.Context) {
+	ordID, err := uuid.Parse(c.Param("ordID"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})
+		return
+	}
+
+	empID, err := strconv.ParseUint(c.Param("empID"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid employee id", "details": err.Error()})
+		return
+	}
+
+	if err := h.orderService.Assign(c, ordID, uint(empID)); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
