@@ -126,10 +126,7 @@ func (r *GormOrderRepository) Preschedule(ctx context.Context, id uuid.UUID, sch
 	result := r.db.WithContext(ctx).
 		Model(&orderEntity).
 		Where("id = ?", id).
-		Updates(map[string]interface{}{
-			"Status":       orderEntity.Status,
-			"ScheduledFor": scheduledFor,
-		})
+		Updates(orderEntity)
 
 	return result.Error
 }
@@ -158,10 +155,7 @@ func (r *GormOrderRepository) Assign(ctx context.Context, id uuid.UUID, empID ui
 	result := r.db.WithContext(ctx).
 		Model(&orderEntity).
 		Where("id = ?", id).
-		Updates(map[string]interface{}{
-			"Status":     orderEntity.Status,
-			"EmployeeID": orderEntity.Employee.ID,
-		})
+		Updates(orderEntity)
 
 	return result.Error
 }
