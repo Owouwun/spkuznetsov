@@ -57,6 +57,10 @@ func prepareOrders(router *gin.Engine, db *gorm.DB) {
 		apiOrders.POST("/preschedule/:id", orderHandler.Preschedule)
 		apiOrders.POST("/assign/:ordID/:empID", orderHandler.Assign)
 		apiOrders.POST("/schedule/:id", orderHandler.Schedule)
+		apiOrders.POST("/progress/:id", orderHandler.Progress)
+		apiOrders.POST("/complete/:id", orderHandler.Complete)
+		apiOrders.POST("/close/:id", orderHandler.Close)
+		apiOrders.POST("/cancel/:id", orderHandler.Cancel)
 	}
 }
 

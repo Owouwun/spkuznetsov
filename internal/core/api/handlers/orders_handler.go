@@ -19,6 +19,10 @@ type OrderService interface {
 	Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
 	Assign(ctx context.Context, id uuid.UUID, empID uint) error
 	Schedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
+	Progress(ctx context.Context, id uuid.UUID, empDescr string) error
+	Complete(ctx context.Context, id uuid.UUID) error
+	Close(ctx context.Context, id uuid.UUID) error
+	Cancel(ctx context.Context, id uuid.UUID, reason string) error
 }
 
 // Содержит логику обработчиков для заявок
@@ -150,6 +154,86 @@ func (h *OrderHandler) Schedule(c *gin.Context) {
 	}
 
 	if err := h.orderService.Schedule(c, id, req.ScheduledFor); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
+}
+
+type ProgressRequest struct {
+	EmployeeDescription string `json:"employee_description"`
+}
+
+func (h *OrderHandler) Progress(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})
+		return
+	}
+
+	var req ProgressRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
+		return
+	}
+
+	if err := h.orderService.Progress(c, id, req.EmployeeDescription); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
+}
+
+func (h *OrderHandler) Complete(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})
+		return
+	}
+
+	if err := h.orderService.Complete(c, id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
+}
+
+func (h *OrderHandler) Close(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})
+		return
+	}
+
+	if err := h.orderService.Close(c, id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
+}
+
+type CancelRequest struct {
+	CancelReason string `json:"cancel_reason"`
+}
+
+func (h *OrderHandler) Cancel(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})
+		return
+	}
+
+	var req CancelRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
+		return
+	}
+
+	if err := h.orderService.Cancel(c, id, req.CancelReason); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

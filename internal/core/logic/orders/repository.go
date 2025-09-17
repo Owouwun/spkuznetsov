@@ -15,6 +15,10 @@ type OrderRepository interface {
 	Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
 	Assign(ctx context.Context, id uuid.UUID, empID uint) error
 	Schedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
+	Progress(ctx context.Context, id uuid.UUID, empDescr string) error
+	Complete(ctx context.Context, id uuid.UUID) error
+	Close(ctx context.Context, id uuid.UUID) error
+	Cancel(ctx context.Context, id uuid.UUID, reason string) error
 }
 
 type OrderService struct {
@@ -59,4 +63,20 @@ func (s *OrderService) Assign(ctx context.Context, id uuid.UUID, empID uint) err
 
 func (s *OrderService) Schedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error {
 	return s.repo.Schedule(ctx, id, scheduledFor)
+}
+
+func (s *OrderService) Progress(ctx context.Context, id uuid.UUID, empDescr string) error {
+	return s.repo.Progress(ctx, id, empDescr)
+}
+
+func (s *OrderService) Complete(ctx context.Context, id uuid.UUID) error {
+	return s.repo.Complete(ctx, id)
+}
+
+func (s *OrderService) Close(ctx context.Context, id uuid.UUID) error {
+	return s.repo.Close(ctx, id)
+}
+
+func (s *OrderService) Cancel(ctx context.Context, id uuid.UUID, reason string) error {
+	return s.repo.Cancel(ctx, id, reason)
 }

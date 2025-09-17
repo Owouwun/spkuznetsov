@@ -186,3 +186,95 @@ func (r *GormOrderRepository) Schedule(ctx context.Context, id uuid.UUID, schedu
 
 	return result.Error
 }
+
+func (r *GormOrderRepository) Progress(ctx context.Context, id uuid.UUID, empDescription string) error {
+	orderEntity, err := r.getEntityByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	order := orderEntity.ToLogicOrder()
+
+	err = order.Progress(empDescription)
+	if err != nil {
+		return err
+	}
+
+	orderEntity = entities.NewOrderEntityFromLogic(order)
+
+	result := r.db.WithContext(ctx).
+		Model(&orderEntity).
+		Where("id = ?", id).
+		Updates(orderEntity)
+
+	return result.Error
+}
+
+func (r *GormOrderRepository) Complete(ctx context.Context, id uuid.UUID) error {
+	orderEntity, err := r.getEntityByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	order := orderEntity.ToLogicOrder()
+
+	err = order.Complete()
+	if err != nil {
+		return err
+	}
+
+	orderEntity = entities.NewOrderEntityFromLogic(order)
+
+	result := r.db.WithContext(ctx).
+		Model(&orderEntity).
+		Where("id = ?", id).
+		Updates(orderEntity)
+
+	return result.Error
+}
+
+func (r *GormOrderRepository) Close(ctx context.Context, id uuid.UUID) error {
+	orderEntity, err := r.getEntityByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	order := orderEntity.ToLogicOrder()
+
+	err = order.Close()
+	if err != nil {
+		return err
+	}
+
+	orderEntity = entities.NewOrderEntityFromLogic(order)
+
+	result := r.db.WithContext(ctx).
+		Model(&orderEntity).
+		Where("id = ?", id).
+		Updates(orderEntity)
+
+	return result.Error
+}
+
+func (r *GormOrderRepository) Cancel(ctx context.Context, id uuid.UUID, reason string) error {
+	orderEntity, err := r.getEntityByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	order := orderEntity.ToLogicOrder()
+
+	err = order.Cancel(reason)
+	if err != nil {
+		return err
+	}
+
+	orderEntity = entities.NewOrderEntityFromLogic(order)
+
+	result := r.db.WithContext(ctx).
+		Model(&orderEntity).
+		Where("id = ?", id).
+		Updates(orderEntity)
+
+	return result.Error
+}
