@@ -26,6 +26,53 @@ const (
 )
 
 func main() {
+	db := prepareDB()
+	router := prepareRouter(db)
+
+	log.Println("Starting server on :8080")
+	if err := router.Run(":8080"); err != nil {
+		log.Fatal("Server failed to start:", err)
+	}
+}
+
+func prepareRouter(db *gorm.DB) *gin.Engine {
+	router := gin.Default()
+
+	prepareOrders(router, db)
+	prepareEmployees(router, db)
+
+	return router
+}
+
+func prepareOrders(router *gin.Engine, db *gorm.DB) {
+	orderRepo := repository_orders.NewOrderRepository(db)
+	orderService := orders.NewOrderService(orderRepo)
+	orderHandler := handlers.NewOrderHandler(orderService)
+
+	apiOrders := router.Group("/api/v1/orders")
+	{
+		apiOrders.GET("/", orderHandler.GetAll)
+		apiOrders.GET("/:id", orderHandler.GetByID)
+		apiOrders.POST("", orderHandler.Create)
+		apiOrders.POST("/preschedule/:id", orderHandler.Preschedule)
+		apiOrders.POST("/assign/:ordID/:empID", orderHandler.Assign)
+	}
+}
+
+func prepareEmployees(router *gin.Engine, db *gorm.DB) {
+	authRepo := repository_auth.NewAuthRepository(db)
+	authService := auth.NewAuthService(authRepo)
+	authHandler := handlers.NewAuthHandler(authService)
+
+	apiEmployees := router.Group("/api/v1/employees")
+	{
+		apiEmployees.GET("/", authHandler.GetEmployees)
+		apiEmployees.GET("/:id", authHandler.GetEmployeeByID)
+		apiEmployees.POST("", authHandler.Create)
+	}
+}
+
+func prepareDB() *gorm.DB {
 	dbConn := os.Getenv("DATABASE_CONN")
 	if dbConn == "" {
 		log.Fatal("DATABASE_CONN environment variable is not set")
@@ -46,36 +93,7 @@ func main() {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 
-	orderRepo := repository_orders.NewOrderRepository(db)
-	orderService := orders.NewOrderService(orderRepo)
-	orderHandler := handlers.NewOrderHandler(orderService)
-
-	authRepo := repository_auth.NewOrderRepository(db)
-	authService := auth.NewAuthService(authRepo)
-	authHandler := handlers.NewAuthHandler(authService)
-
-	router := gin.Default()
-
-	apiOrders := router.Group("/api/v1/orders")
-	{
-		apiOrders.GET("/", orderHandler.GetAll)
-		apiOrders.GET("/:id", orderHandler.GetByID)
-		apiOrders.POST("", orderHandler.Create)
-		apiOrders.POST("/preschedule/:id", orderHandler.Preschedule)
-		apiOrders.POST("/assign/:ordID/:empID", orderHandler.Assign)
-	}
-
-	apiEmployees := router.Group("/api/v1/employees")
-	{
-		apiEmployees.GET("/", authHandler.GetEmployees)
-		apiEmployees.GET("/:id", authHandler.GetEmployeeByID)
-		apiEmployees.POST("", authHandler.Create)
-	}
-
-	log.Println("Starting server on :8080")
-	if err := router.Run(":8080"); err != nil {
-		log.Fatal("Server failed to start:", err)
-	}
+	return db
 }
 
 func runMigrations(dbConn string) {
