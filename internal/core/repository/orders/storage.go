@@ -2,6 +2,7 @@ package repository_orders
 
 import (
 	"context"
+	"time"
 
 	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
 	"github.com/Owouwun/spkuznetsov/internal/core/repository/entities"
@@ -15,6 +16,18 @@ type GormOrderRepository struct {
 
 func NewOrderRepository(db *gorm.DB) orders.OrderRepository {
 	return &GormOrderRepository{db: db}
+}
+
+func (r *GormOrderRepository) getOrderEntityById(ctx context.Context, id uuid.UUID) (*entities.OrderEntity, error) {
+	var orderEntity *entities.OrderEntity
+	result := r.db.WithContext(ctx).
+		Preload("Employee").
+		First(&orderEntity, "id = ?", id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return orderEntity, nil
 }
 
 func (r *GormOrderRepository) CreateOrder(ctx context.Context, ord *orders.Order) (uuid.UUID, error) {
@@ -58,12 +71,9 @@ func (r *GormOrderRepository) UpdateOrder(ctx context.Context, ord *orders.Order
 }
 
 func (r *GormOrderRepository) GetOrderByID(ctx context.Context, id uuid.UUID) (*orders.Order, error) {
-	var orderEntity entities.OrderEntity
-	result := r.db.WithContext(ctx).
-		Preload("Employee").
-		First(&orderEntity, "id = ?", id)
-	if result.Error != nil {
-		return nil, result.Error
+	orderEntity, err := r.getOrderEntityById(ctx, id)
+	if err != nil {
+		return nil, err
 	}
 
 	return orderEntity.ToLogicOrder(), nil
@@ -85,4 +95,30 @@ func (r *GormOrderRepository) GetOrders(ctx context.Context) ([]*orders.Order, e
 	}
 
 	return logicOrders, nil
+}
+
+func (r *GormOrderRepository) Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error {
+	orderEntity, err := r.getOrderEntityById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	order := orderEntity.ToLogicOrder()
+
+	err = order.Preschedule(scheduledFor)
+	if err != nil {
+		return err
+	}
+
+	orderEntity = entities.NewOrderEntityFromLogic(order)
+
+	result := r.db.WithContext(ctx).
+		Model(&orderEntity).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"Status":       orderEntity.Status,
+			"ScheduledFor": scheduledFor,
+		})
+
+	return result.Error
 }

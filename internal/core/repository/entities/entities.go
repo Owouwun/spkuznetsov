@@ -19,7 +19,7 @@ type OrderEntity struct {
 	Status              int `gorm:"not null"`
 	EmployeeDescription string
 	ScheduledFor        *time.Time
-	Employee            *EmployeeEntity `gorm:"foreignKey:EmployeeID"`
+	Employee            *EmployeeEntity `gorm:"foreignKey:EmployeeID;references:ID"`
 }
 
 type EmployeeEntity struct {

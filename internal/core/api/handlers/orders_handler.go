@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/Owouwun/spkuznetsov/internal/core/logic/orders"
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,7 @@ type OrderService interface {
 	CreateOrder(ctx context.Context, pord *orders.PrimaryOrder) (uuid.UUID, error)
 	GetOrder(ctx context.Context, id uuid.UUID) (*orders.Order, error)
 	GetOrders(ctx context.Context) ([]*orders.Order, error)
+	Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
 }
 
 // Содержит логику обработчиков для заявок
@@ -27,6 +29,36 @@ func NewOrderHandler(os OrderService) *OrderHandler {
 	return &OrderHandler{
 		orderService: os,
 	}
+}
+
+type PrescheduleRequest struct {
+	ScheduledFor *time.Time `json:"scheduled_for"`
+}
+
+func (h *OrderHandler) GetOrders(c *gin.Context) {
+	orders, err := h.orderService.GetOrders(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get orders", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
+}
+
+func (h *OrderHandler) GetOrder(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})
+		return
+	}
+
+	order, err := h.orderService.GetOrder(c, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get order", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, order)
 }
 
 // CreateNewOrder обрабатывает HTTP POST-запрос на создание нового заказа.
@@ -59,28 +91,23 @@ func (h *OrderHandler) CreateNewOrder(c *gin.Context) {
 	c.JSON(http.StatusCreated, newOrder)
 }
 
-func (h *OrderHandler) GetOrder(c *gin.Context) {
+func (h *OrderHandler) PrescheduleOrder(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})
 		return
 	}
 
-	order, err := h.orderService.GetOrder(c, id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get order", "details": err.Error()})
+	var req PrescheduleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, order)
-}
-
-func (h *OrderHandler) GetOrders(c *gin.Context) {
-	orders, err := h.orderService.GetOrders(c)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get orders", "details": err.Error()})
+	if err := h.orderService.Preschedule(c, id, req.ScheduledFor); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, orders)
+	c.JSON(http.StatusOK, nil)
 }

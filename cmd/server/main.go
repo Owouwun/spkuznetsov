@@ -54,9 +54,10 @@ func main() {
 
 	apiGroup := router.Group("/api/v1")
 	{
-		apiGroup.POST("/orders", orderHandler.CreateNewOrder)
-		apiGroup.GET("/orders/:id", orderHandler.GetOrder)
 		apiGroup.GET("/orders", orderHandler.GetOrders)
+		apiGroup.GET("/orders/:id", orderHandler.GetOrder)
+		apiGroup.POST("/orders", orderHandler.CreateNewOrder)
+		apiGroup.POST("/orders/:id/preschedule", orderHandler.PrescheduleOrder)
 	}
 
 	log.Println("Starting server on :8080")

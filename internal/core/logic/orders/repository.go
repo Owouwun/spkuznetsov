@@ -2,15 +2,17 @@ package orders
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type OrderRepository interface {
-	CreateOrder(ctx context.Context, order *Order) (uuid.UUID, error)
-	GetOrderByID(ctx context.Context, id uuid.UUID) (*Order, error)
-	UpdateOrder(ctx context.Context, order *Order) error
 	GetOrders(ctx context.Context) ([]*Order, error)
+	GetOrderByID(ctx context.Context, id uuid.UUID) (*Order, error)
+	CreateOrder(ctx context.Context, order *Order) (uuid.UUID, error)
+	UpdateOrder(ctx context.Context, order *Order) error
+	Preschedule(ctx context.Context, id uuid.UUID, scheduledFor *time.Time) error
 }
 
 type OrderService struct {
@@ -43,4 +45,8 @@ func (s *OrderService) GetOrder(ctx context.Context, id uuid.UUID) (*Order, erro
 
 func (s *OrderService) GetOrders(ctx context.Context) ([]*Order, error) {
 	return s.repo.GetOrders(ctx)
+}
+
+func (s *OrderService) Preschedule(ctx context.Context, id uuid.UUID, ScheduledFor *time.Time) error {
+	return s.repo.Preschedule(ctx, id, ScheduledFor)
 }
