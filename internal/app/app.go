@@ -39,13 +39,13 @@ func prepareOrders(router *gin.Engine, db *gorm.DB) {
 		apiOrders.GET("/", orderHandler.GetAll)
 		apiOrders.GET("/:id", orderHandler.GetByID)
 		apiOrders.POST("", orderHandler.Create)
-		apiOrders.POST("/preschedule/:id", orderHandler.Preschedule)
-		apiOrders.POST("/assign/:ordID/:empID", orderHandler.Assign)
-		apiOrders.POST("/schedule/:id", orderHandler.Schedule)
-		apiOrders.POST("/progress/:id", orderHandler.Progress)
-		apiOrders.POST("/complete/:id", orderHandler.Complete)
-		apiOrders.POST("/close/:id", orderHandler.Close)
-		apiOrders.POST("/cancel/:id", orderHandler.Cancel)
+		apiOrders.PATCH("/:id/preschedule", orderHandler.Preschedule)
+		apiOrders.PATCH("/:ordID/assign/:empID", orderHandler.Assign)
+		apiOrders.PATCH("/:id/schedule", orderHandler.Schedule)
+		apiOrders.PATCH("/:id/progress", orderHandler.Progress)
+		apiOrders.PATCH("/:id/complete", orderHandler.Complete)
+		apiOrders.PATCH("/:id/close", orderHandler.Close)
+		apiOrders.PATCH("/:id/cancel", orderHandler.Cancel)
 	}
 }
 
