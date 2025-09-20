@@ -9,7 +9,6 @@ import (
 
 	repository_orders "github.com/Owouwun/spkuznetsov/internal/core/repository/services/orders"
 	"github.com/Owouwun/spkuznetsov/internal/testutils"
-	"github.com/Owouwun/spkuznetsov/pkg/logger"
 	"github.com/docker/go-connections/nat"
 	"github.com/golang-migrate/migrate/v4"
 	migpostgres "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -106,9 +105,10 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 		if err != nil {
 			t.Log(err)
 		}
-		logger.LogIfErr(t, "error while terminating container: %v",
-			postgresContainer.Terminate, ctx,
-		)
+		err = postgresContainer.Terminate(ctx)
+		if err != nil {
+			t.Log(err)
+		}
 	}
 
 	return gormDB, cleanup

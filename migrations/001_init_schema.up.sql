@@ -18,6 +18,6 @@ CREATE TABLE IF NOT EXISTS public.orders (
     scheduled_for TIMESTAMP WITH TIME ZONE
 );
 
-CREATE INDEX idx_orders_status ON public.orders(status);
-CREATE INDEX idx_orders_employee_id ON public.orders(employee_id);
-CREATE INDEX idx_orders_scheduled_for ON public.orders(scheduled_for);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_employee_id ON public.orders(employee_id);
+CREATE INDEX IF NOT EXISTS idx_orders_scheduled_for ON public.orders(scheduled_for);
