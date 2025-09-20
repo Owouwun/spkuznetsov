@@ -68,25 +68,14 @@ func (h *OrderHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, order)
 }
 
-// CreateNewOrder обрабатывает HTTP POST-запрос на создание нового заказа.
-// @Summary Создаёт новый заказ
-// @Description Принимает данные первичной заявки и создаёт новый заказ.
-// @Accept json
-// @Produce json
-// @Param order body orders.PrimaryOrder true "Первичная заявка для создания нового заказа"
-// @Success 201 {object} orders.Order
-// @Failure 400 {object} gin.H "Неверные данные запроса"
-// @Router /orders [post]
 func (h *OrderHandler) Create(c *gin.Context) {
 	var primaryOrder orders.PrimaryOrder
 
-	// Десериализуем JSON-тело запроса в структуру primaryOrder.
 	if err := c.ShouldBindJSON(&primaryOrder); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
 		return
 	}
 
-	// Вызываем сервис бизнес-логики для создания заказа.
 	newOrderID, err := h.orderService.Create(c, &primaryOrder)
 	if err != nil {
 		// TODO: Check on various errors
@@ -94,7 +83,6 @@ func (h *OrderHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// Отправляем успешный ответ с ID созданного заказа и статусом 201 Created.
 	c.JSON(http.StatusCreated, newOrderID)
 }
 
