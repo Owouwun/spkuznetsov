@@ -1,0 +1,422 @@
+basePath: /api/v1
+definitions:
+  auth.Employee:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  handlers.CancelRequest:
+    properties:
+      cancel_reason:
+        type: string
+    type: object
+  handlers.PrescheduleRequest:
+    properties:
+      scheduled_for:
+        type: string
+    type: object
+  handlers.ProgressRequest:
+    properties:
+      employee_description:
+        type: string
+    type: object
+  orders.Order:
+    properties:
+      address:
+        type: string
+      cancel_reason:
+        type: string
+      client_description:
+        type: string
+      client_name:
+        type: string
+      client_phone:
+        type: string
+      employee:
+        $ref: '#/definitions/auth.Employee'
+      employee_description:
+        type: string
+      id:
+        description: Immutable
+        type: string
+      scheduled_for:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/orders.Status'
+        description: Mutable
+    type: object
+  orders.PrimaryOrder:
+    properties:
+      address:
+        type: string
+      client_description:
+        type: string
+      client_name:
+        type: string
+      client_phone:
+        type: string
+    type: object
+  orders.Status:
+    enum:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - -1
+    format: int32
+    type: integer
+    x-enum-comments:
+      StatusAssigned: '"Назначен сотрудник"'
+      StatusCanceled: '"Отменена"'
+      StatusDone: '"Выполнена"'
+      StatusInProgress: '"Работы частично проведены"'
+      StatusNew: '"Оформлена"'
+      StatusPaid: '"Оплачена"'
+      StatusPrescheduled: '"Назначена предварительная дата работ"'
+      StatusScheduled: '"Назначены работы"'
+    x-enum-descriptions:
+    - '"Оформлена"'
+    - '"Назначена предварительная дата работ"'
+    - '"Назначен сотрудник"'
+    - '"Назначены работы"'
+    - '"Работы частично проведены"'
+    - '"Выполнена"'
+    - '"Оплачена"'
+    - '"Отменена"'
+    x-enum-varnames:
+    - StatusNew
+    - StatusPrescheduled
+    - StatusAssigned
+    - StatusScheduled
+    - StatusInProgress
+    - StatusDone
+    - StatusPaid
+    - StatusCanceled
+host: localhost:8080
+info:
+  contact:
+    email: kuznetsovivangio@gmail.com
+    name: Ivan Kuznetsov
+  description: A web service for managing and tracking service requests.
+  title: Orders Management Service
+  version: "1.0"
+paths:
+  /orders:
+    get:
+      description: Returns list of all orders
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/orders.Order'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all orders
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      description: Create order with PrimaryOrder payload
+      parameters:
+      - description: Primary order payload
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/orders.PrimaryOrder'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: new order UUID
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new order
+      tags:
+      - orders
+  /orders/{id}:
+    get:
+      description: Get single order by UUID
+      parameters:
+      - description: Order ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/orders.Order'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get order by ID
+      tags:
+      - orders
+  /orders/{id}/assign/{empID}:
+    patch:
+      description: Assign employee by numeric ID to an order
+      parameters:
+      - description: Order ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Employee ID
+        in: path
+        name: empID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Assign employee to order
+      tags:
+      - orders
+  /orders/{id}/cancel:
+    patch:
+      consumes:
+      - application/json
+      description: Cancel with a reason
+      parameters:
+      - description: Order ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Cancel payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CancelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Cancel an order
+      tags:
+      - orders
+  /orders/{id}/close:
+    patch:
+      parameters:
+      - description: Order ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Close an order
+      tags:
+      - orders
+  /orders/{id}/complete:
+    patch:
+      parameters:
+      - description: Order ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Mark order as completed
+      tags:
+      - orders
+  /orders/{id}/preschedule:
+    patch:
+      consumes:
+      - application/json
+      description: Set or update a provisional scheduled time for the order
+      parameters:
+      - description: Order ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Preschedule payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.PrescheduleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Preschedule an order (provisional scheduling)
+      tags:
+      - orders
+  /orders/{id}/progress:
+    patch:
+      consumes:
+      - application/json
+      description: Attach employee progress/notes to an order
+      parameters:
+      - description: Order ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Progress payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ProgressRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Report progress for an order
+      tags:
+      - orders
+  /orders/{id}/schedule:
+    patch:
+      consumes:
+      - application/json
+      description: Set the final scheduled time for an order
+      parameters:
+      - description: Order ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Schedule payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.PrescheduleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Schedule an order (final scheduling)
+      tags:
+      - orders
+swagger: "2.0"

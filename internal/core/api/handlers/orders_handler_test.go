@@ -428,7 +428,7 @@ func TestAssign_Handler(t *testing.T) {
 			mock, postCheck := tc.mockSetup()
 			h := NewOrderHandler(mock)
 			r := gin.New()
-			r.PATCH("/orders/:ordID/assign/:empID", h.Assign)
+			r.PATCH("/orders/:id/assign/:empID", h.Assign)
 
 			w := performRequest(r, "PATCH", tc.path, nil, "")
 			if w.Code != tc.wantStatus {

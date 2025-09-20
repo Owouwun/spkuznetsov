@@ -169,14 +169,14 @@ func (h *OrderHandler) Preschedule(c *gin.Context) {
 // @Description Assign employee by numeric ID to an order
 // @Tags orders
 // @Produce json
-// @Param ordID path string true "Order ID" Format(uuid)
+// @Param id path string true "Order ID" Format(uuid)
 // @Param empID path int true "Employee ID"
 // @Success 200 {object} nil
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /orders/{ordID}/assign/{empID} [patch]
+// @Router /orders/{id}/assign/{empID} [patch]
 func (h *OrderHandler) Assign(c *gin.Context) {
-	ordID, err := uuid.Parse(c.Param("ordID"))
+	ordID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id", "details": err.Error()})
 		return

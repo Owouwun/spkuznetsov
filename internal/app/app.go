@@ -36,16 +36,20 @@ func prepareOrders(router *gin.Engine, db *gorm.DB) {
 
 	apiOrders := router.Group("/api/v1/orders")
 	{
-		apiOrders.GET("/", orderHandler.GetAll)
+		apiOrders.GET("", orderHandler.GetAll)
 		apiOrders.GET("/:id", orderHandler.GetByID)
 		apiOrders.POST("", orderHandler.Create)
-		apiOrders.PATCH("/:id/preschedule", orderHandler.Preschedule)
-		apiOrders.PATCH("/:ordID/assign/:empID", orderHandler.Assign)
-		apiOrders.PATCH("/:id/schedule", orderHandler.Schedule)
-		apiOrders.PATCH("/:id/progress", orderHandler.Progress)
-		apiOrders.PATCH("/:id/complete", orderHandler.Complete)
-		apiOrders.PATCH("/:id/close", orderHandler.Close)
-		apiOrders.PATCH("/:id/cancel", orderHandler.Cancel)
+	}
+
+	apiOrdersPatch := router.Group("/api/v1/orders/:id")
+	{
+		apiOrdersPatch.PATCH("/preschedule", orderHandler.Preschedule)
+		apiOrdersPatch.PATCH("/assign/:empID", orderHandler.Assign)
+		apiOrdersPatch.PATCH("/schedule", orderHandler.Schedule)
+		apiOrdersPatch.PATCH("/progress", orderHandler.Progress)
+		apiOrdersPatch.PATCH("/complete", orderHandler.Complete)
+		apiOrdersPatch.PATCH("/close", orderHandler.Close)
+		apiOrdersPatch.PATCH("/cancel", orderHandler.Cancel)
 	}
 }
 
