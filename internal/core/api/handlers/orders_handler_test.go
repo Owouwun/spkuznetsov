@@ -356,9 +356,9 @@ func TestPreschedule_Handler(t *testing.T) {
 			mock := tc.mockSetup()
 			h := NewOrderHandler(mock)
 			r := gin.New()
-			r.POST("/orders/:id/preschedule", h.Preschedule)
+			r.PATCH("/orders/:id/preschedule", h.Preschedule)
 
-			w := performRequest(r, "POST", tc.path, tc.body, "application/json")
+			w := performRequest(r, "PATCH", tc.path, tc.body, "application/json")
 			if w.Code != tc.wantStatus {
 				t.Fatalf("want %d got %d body: %s", tc.wantStatus, w.Code, w.Body.String())
 			}
@@ -428,9 +428,9 @@ func TestAssign_Handler(t *testing.T) {
 			mock, postCheck := tc.mockSetup()
 			h := NewOrderHandler(mock)
 			r := gin.New()
-			r.POST("/orders/:ordID/assign/:empID", h.Assign)
+			r.PATCH("/orders/:ordID/assign/:empID", h.Assign)
 
-			w := performRequest(r, "POST", tc.path, nil, "")
+			w := performRequest(r, "PATCH", tc.path, nil, "")
 			if w.Code != tc.wantStatus {
 				t.Fatalf("want %d got %d body: %s", tc.wantStatus, w.Code, w.Body.String())
 			}
@@ -499,9 +499,9 @@ func TestSchedule_Handler(t *testing.T) {
 			mock := tc.mockSetup()
 			h := NewOrderHandler(mock)
 			r := gin.New()
-			r.POST("/orders/:id/schedule", h.Schedule)
+			r.PATCH("/orders/:id/schedule", h.Schedule)
 
-			w := performRequest(r, "POST", tc.path, tc.body, "application/json")
+			w := performRequest(r, "PATCH", tc.path, tc.body, "application/json")
 			if w.Code != tc.wantStatus {
 				t.Fatalf("want %d got %d body: %s", tc.wantStatus, w.Code, w.Body.String())
 			}
@@ -567,9 +567,9 @@ func TestProgress_Handler(t *testing.T) {
 			mock, _ := tc.mockSetup()
 			h := NewOrderHandler(mock)
 			r := gin.New()
-			r.POST("/orders/:id/progress", h.Progress)
+			r.PATCH("/orders/:id/progress", h.Progress)
 
-			w := performRequest(r, "POST", tc.path, tc.body, "application/json")
+			w := performRequest(r, "PATCH", tc.path, tc.body, "application/json")
 			if w.Code != tc.wantStatus {
 				t.Fatalf("want %d got %d body: %s", tc.wantStatus, w.Code, w.Body.String())
 			}
@@ -620,9 +620,9 @@ func TestComplete_Handler(t *testing.T) {
 			mock := tc.mockSetup()
 			h := NewOrderHandler(mock)
 			r := gin.New()
-			r.POST("/orders/:id/complete", h.Complete)
+			r.PATCH("/orders/:id/complete", h.Complete)
 
-			w := performRequest(r, "POST", tc.path, nil, "")
+			w := performRequest(r, "PATCH", tc.path, nil, "")
 			if w.Code != tc.wantStatus {
 				t.Fatalf("want %d got %d body: %s", tc.wantStatus, w.Code, w.Body.String())
 			}
@@ -673,9 +673,9 @@ func TestClose_Handler(t *testing.T) {
 			mock := tc.mockSetup()
 			h := NewOrderHandler(mock)
 			r := gin.New()
-			r.POST("/orders/:id/close", h.Close)
+			r.PATCH("/orders/:id/close", h.Close)
 
-			w := performRequest(r, "POST", tc.path, nil, "")
+			w := performRequest(r, "PATCH", tc.path, nil, "")
 			if w.Code != tc.wantStatus {
 				t.Fatalf("want %d got %d body: %s", tc.wantStatus, w.Code, w.Body.String())
 			}
@@ -746,9 +746,9 @@ func TestCancel_Handler(t *testing.T) {
 			mock, postCheck := tc.mockSetup()
 			h := NewOrderHandler(mock)
 			r := gin.New()
-			r.POST("/orders/:id/cancel", h.Cancel)
+			r.PATCH("/orders/:id/cancel", h.Cancel)
 
-			w := performRequest(r, "POST", tc.path, tc.body, "application/json")
+			w := performRequest(r, "PATCH", tc.path, tc.body, "application/json")
 			if w.Code != tc.wantStatus {
 				t.Fatalf("want %d got %d body: %s", tc.wantStatus, w.Code, w.Body.String())
 			}
