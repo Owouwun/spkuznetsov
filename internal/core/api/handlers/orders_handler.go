@@ -25,22 +25,32 @@ type OrderService interface {
 	Cancel(ctx context.Context, id uuid.UUID, reason string) error
 }
 
-// Содержит логику обработчиков для заявок
+// OrderHandler содержит зависимости и логику HTTP-обработчиков.
 type OrderHandler struct {
 	orderService OrderService
 }
 
-// NewOrderHandler создаёт новый экземпляр OrderHandler.
-// Использует внедрение зависимостей для OrderService.
 func NewOrderHandler(os OrderService) *OrderHandler {
 	return &OrderHandler{
 		orderService: os,
 	}
 }
 
+// DTO
+
 type PrescheduleRequest struct {
 	ScheduledFor *time.Time `json:"scheduled_for"`
 }
+
+type ProgressRequest struct {
+	EmployeeDescription string `json:"employee_description"`
+}
+
+type CancelRequest struct {
+	CancelReason string `json:"cancel_reason"`
+}
+
+// Handlers
 
 func (h *OrderHandler) GetAll(c *gin.Context) {
 	orders, err := h.orderService.GetAll(c)
@@ -149,10 +159,6 @@ func (h *OrderHandler) Schedule(c *gin.Context) {
 	c.JSON(http.StatusOK, nil)
 }
 
-type ProgressRequest struct {
-	EmployeeDescription string `json:"employee_description"`
-}
-
 func (h *OrderHandler) Progress(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -202,10 +208,6 @@ func (h *OrderHandler) Close(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, nil)
-}
-
-type CancelRequest struct {
-	CancelReason string `json:"cancel_reason"`
 }
 
 func (h *OrderHandler) Cancel(c *gin.Context) {
